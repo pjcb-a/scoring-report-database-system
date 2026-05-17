@@ -60,3 +60,19 @@ import { getEvents } from '../services/eventService'
   </div>
 
 </template>
+
+<style scoped>
+
+.event-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+</style>

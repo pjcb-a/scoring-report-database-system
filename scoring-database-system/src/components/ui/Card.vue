@@ -1,5 +1,7 @@
 <template>
-  <div class="card-base p-4">
+
+  <div class="card-base">
     <slot />
   </div>
+
 </template>

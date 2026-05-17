@@ -1,34 +1,53 @@
 <template>
 
-  <aside class="w-64 bg-white border-r min-h-screen p-4">
+  <aside class="sidebar">
 
-    <h1 class="text-xl font-bold mb-8">
-      Sports Reporting System
-    </h1>
+    <div class="sidebar-header">
 
-    <nav class="flex flex-col gap-2">
+      <h1 class="sidebar-logo">
+        SRDS
+      </h1>
 
-      <router-link to="/" class="btn-ghost">
+      <p class="sidebar-subtitle">
+        Sports Reporting
+      </p>
+
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <router-link
+        to="/"
+        class="sidebar-link"
+      >
         Dashboard
       </router-link>
 
-      <router-link to="/events" class="btn-ghost">
+      <router-link
+        to="/events"
+        class="sidebar-link"
+      >
         Events
       </router-link>
 
-      <router-link to="/sports" class="btn-ghost">
+      <router-link
+        to="/sports"
+        class="sidebar-link"
+      >
         Sports
       </router-link>
 
-      <router-link to="/teams" class="btn-ghost">
-        Teams
-      </router-link>
-
-      <router-link to="/games" class="btn-ghost">
+      <router-link
+        to="/games"
+        class="sidebar-link"
+      >
         Games
       </router-link>
 
-      <router-link to="/reports" class="btn-ghost">
+      <router-link
+        to="/reports"
+        class="sidebar-link"
+      >
         Reports
       </router-link>
 
@@ -37,3 +56,56 @@
   </aside>
 
 </template>
+
+<style scoped>
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+
+  background-color: var(--white);
+
+  border-right: 1px solid var(--border-color);
+
+  padding: 20px;
+}
+
+.sidebar-header {
+  margin-bottom: 30px;
+}
+
+.sidebar-logo {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--adnu-blue-dark);
+}
+
+.sidebar-subtitle {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-link {
+  padding: 12px 16px;
+
+  border-radius: var(--radius-md);
+
+  transition: var(--transition-fast);
+
+  color: var(--text-main);
+}
+
+.sidebar-link:hover {
+  background-color: var(--adnu-blue-light);
+}
+
+.sidebar-link.router-link-active {
+  background-color: var(--adnu-blue-dark);
+  color: var(--white);
+}
+</style>
