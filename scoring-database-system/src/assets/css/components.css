@@ -1,0 +1,80 @@
+.btn-primary {
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background-color: var(--adnu-danger);
+  color: var(--white);
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  transition: var(--transition-fast);
+}
+
+.btn-danger:hover {
+  background-color: var(--adnu-danger-strong);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  border: 1px solid var(--adnu-blue-dark);
+  color: var(--adnu-blue-dark);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+}
+
+.btn-ghost:hover {
+  background-color: var(--adnu-blue-light);
+}
+
+.card-base {
+  background-color: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+
+.badge-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--adnu-live-red);
+  color: var(--white);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--adnu-gold);
+  color: var(--adnu-blue-navy);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 14px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+}
+
+.data-table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+}

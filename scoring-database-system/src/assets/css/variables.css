@@ -1,0 +1,25 @@
+:root {
+  --adnu-blue-dark: #0038A8;
+  --adnu-blue-navy: #001F5C;
+  --adnu-blue-light: #E8F0FF;
+  --adnu-gold: #FFD700;
+  --adnu-live-red: #FF4D4D;
+  --adnu-danger: #AA3333;
+  --adnu-danger-strong: #882222;
+  --adnu-danger-light: #FEE2E2;
+
+  --bg-gray-light: #F4F7FA;
+  --text-main: #1A202C;
+  --text-muted: #718096;
+  --white: #FFFFFF;
+  --border-color: #E2E8F0;
+
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --transition-fast: 0.2s ease;
+}
