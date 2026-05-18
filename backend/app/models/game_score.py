@@ -18,8 +18,9 @@ class GameScore(db.Model):
         nullable=False
     )
 
-    score_value = db.Column(db.Float)
-    isWinner = db.Column(db.String(20))
+    score_value = db.Column(db.Float, nullable=False)
+    rank_position = db.Column(db.Integer, nullable=True)
+    isWinner = db.Boolean(db.Boolean, nullable=False, default=False)
 
     game = db.relationship(
         "Game",
