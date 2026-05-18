@@ -4,19 +4,23 @@ import { reactive } from 'vue'
 import Input from '@/components/ui/Input.vue'
 import PrimaryButton from '@/components/ui/PrimaryButton.vue'
 
+const props = defineProps({
+
+  scoringTypes: {
+    type: Array,
+    required: true
+  }
+})
+
 const emit = defineEmits([
   'submit'
 ])
 
 const form = reactive({
 
-  event_name: '',
+  sport_name: '',
 
-  start_day: '',
-
-  end_day: '',
-
-  status: 'Upcoming'
+  scoring_type_id: ''
 })
 
 const submitForm = () => {
@@ -25,60 +29,49 @@ const submitForm = () => {
     ...form
   })
 
-  form.event_name = ''
-  form.start_day = ''
-  form.end_day = ''
+  form.sport_name = ''
 
-  form.status = 'Upcoming'
+  form.scoring_type_id = ''
 }
 </script>
 
 <template>
 
   <form
-    class="event-form"
+    class="sport-form"
     @submit.prevent="submitForm"
   >
 
     <Input
-      v-model="form.event_name"
-      label="Event Name"
-      placeholder="Enter event name"
-    />
-
-    <Input
-      v-model="form.start_day"
-      type="date"
-      label="Start Date"
-    />
-
-    <Input
-      v-model="form.end_day"
-      type="date"
-      label="End Date"
+      v-model="form.sport_name"
+      label="Sport Name"
+      placeholder="Enter sport name"
     />
 
     <div class="input-group">
 
       <label>
-        Status
+        Scoring Type
       </label>
 
       <select
-        v-model="form.status"
+        v-model="form.scoring_type_id"
         class="base-input"
       >
 
-        <option value="Upcoming">
-          Upcoming
+        <option
+          disabled
+          value=""
+        >
+          Select scoring type
         </option>
 
-        <option value="Active">
-          Active
-        </option>
-
-        <option value="Completed">
-          Completed
+        <option
+          v-for="type in scoringTypes"
+          :key="type.scoring_type_id"
+          :value="type.scoring_type_id"
+        >
+          {{ type.type }}
         </option>
 
       </select>
@@ -88,7 +81,7 @@ const submitForm = () => {
     <div class="form-actions">
 
       <PrimaryButton>
-        Save Event
+        Save Sport
       </PrimaryButton>
 
     </div>
@@ -98,7 +91,7 @@ const submitForm = () => {
 </template>
 
 <style scoped>
-.event-form {
+.sport-form {
   display: flex;
   flex-direction: column;
   gap: 18px;

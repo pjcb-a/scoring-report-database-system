@@ -3,14 +3,14 @@ import api from '@/services/api'
 
 /*
 |--------------------------------------------------------------------------
-| GET ALL EVENTS
+| GET ALL SPORTS
 |--------------------------------------------------------------------------
 */
 
-export const fetchEvents = async () => {
+export const fetchSports = async () => {
 
   const response = await api.get(
-    '/events'
+    '/sports'
   )
 
   return response.data
@@ -19,34 +19,16 @@ export const fetchEvents = async () => {
 
 /*
 |--------------------------------------------------------------------------
-| GET SINGLE EVENT
+| CREATE SPORT
 |--------------------------------------------------------------------------
 */
 
-export const fetchEvent = async (
-  eventId
-) => {
-
-  const response = await api.get(
-    `/events/${eventId}`
-  )
-
-  return response.data
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| CREATE EVENT
-|--------------------------------------------------------------------------
-*/
-
-export const createEvent = async (
+export const createSport = async (
   payload
 ) => {
 
   const response = await api.post(
-    '/events',
+    '/sports',
     payload
   )
 
@@ -56,17 +38,17 @@ export const createEvent = async (
 
 /*
 |--------------------------------------------------------------------------
-| UPDATE EVENT
+| UPDATE SPORT
 |--------------------------------------------------------------------------
 */
 
-export const updateEvent = async (
-  eventId,
+export const updateSport = async (
+  sportId,
   payload
 ) => {
 
   const response = await api.put(
-    `/events/${eventId}`,
+    `/sports/${sportId}`,
     payload
   )
 
@@ -76,16 +58,32 @@ export const updateEvent = async (
 
 /*
 |--------------------------------------------------------------------------
-| DELETE EVENT
+| DELETE SPORT
 |--------------------------------------------------------------------------
 */
 
-export const deleteEvent = async (
-  eventId
+export const deleteSport = async (
+  sportId
 ) => {
 
   const response = await api.delete(
-    `/events/${eventId}`
+    `/sports/${sportId}`
+  )
+
+  return response.data
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| GET SCORING TYPES
+|--------------------------------------------------------------------------
+*/
+
+export const fetchScoringTypes = async () => {
+
+  const response = await api.get(
+    '/scoring-types'
   )
 
   return response.data

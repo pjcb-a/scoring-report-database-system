@@ -13,3 +13,36 @@ class Team(db.Model):
         back_populates="team",
         cascade="all, delete-orphan"
     )
+
+       """
+    --------------------------------------------------------------------------
+    SERIALIZER
+    --------------------------------------------------------------------------
+    """
+
+    def to_dict(self):
+
+        return {
+
+            'team_id':
+            self.team_id,
+
+            'team_name':
+            self.team_name,
+
+            'team_color':
+            self.team_color
+        }
+
+    """
+    --------------------------------------------------------------------------
+    STRING REPRESENTATION
+    --------------------------------------------------------------------------
+    """
+
+    def __repr__(self):
+
+        return (
+            f'<Team '
+            f'{self.team_name}>'
+        )

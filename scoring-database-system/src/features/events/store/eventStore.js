@@ -1,11 +1,17 @@
 import { computed, ref } from 'vue'
 
 import {
+
+  fetchEvents,
+
   createEvent,
-  deleteEvent,
-  getEvents,
-  updateEvent
+
+  updateEvent,
+
+  deleteEvent
+
 } from '../services/eventService'
+
 
 /*
 |--------------------------------------------------------------------------
@@ -18,6 +24,7 @@ const events = ref([])
 const loading = ref(false)
 
 const error = ref(null)
+
 
 /*
 |--------------------------------------------------------------------------
@@ -36,13 +43,14 @@ const activeEvents = computed(() => {
   ).length
 })
 
+
 /*
 |--------------------------------------------------------------------------
 | ACTIONS
 |--------------------------------------------------------------------------
 */
 
-const fetchEvents = async () => {
+const loadEvents = async () => {
 
   loading.value = true
 
@@ -50,14 +58,14 @@ const fetchEvents = async () => {
 
   try {
 
-    events.value = await getEvents()
+    events.value = await fetchEvents()
 
   } catch (err) {
 
+    console.error(err)
+
     error.value =
       'Failed to load events.'
-
-    console.error(err)
 
   } finally {
 
@@ -65,22 +73,26 @@ const fetchEvents = async () => {
   }
 }
 
-const addEvent = async (payload) => {
+
+const addEvent = async (
+  payload
+) => {
 
   try {
 
     await createEvent(payload)
 
-    await fetchEvents()
+    await loadEvents()
 
   } catch (err) {
 
+    console.error(err)
+
     error.value =
       'Failed to create event.'
-
-    console.error(err)
   }
 }
+
 
 const editEvent = async (
   eventId,
@@ -94,16 +106,17 @@ const editEvent = async (
       payload
     )
 
-    await fetchEvents()
+    await loadEvents()
 
   } catch (err) {
 
+    console.error(err)
+
     error.value =
       'Failed to update event.'
-
-    console.error(err)
   }
 }
+
 
 const removeEvent = async (
   eventId
@@ -113,16 +126,17 @@ const removeEvent = async (
 
     await deleteEvent(eventId)
 
-    await fetchEvents()
+    await loadEvents()
 
   } catch (err) {
 
+    console.error(err)
+
     error.value =
       'Failed to delete event.'
-
-    console.error(err)
   }
 }
+
 
 /*
 |--------------------------------------------------------------------------
@@ -135,9 +149,9 @@ export function useEventStore() {
   return {
 
     /*
-    |----------------------------------------------------------------------
-    | STATE
-    |----------------------------------------------------------------------
+    --------------------------------------------------------------------------
+    STATE
+    --------------------------------------------------------------------------
     */
 
     events,
@@ -145,21 +159,21 @@ export function useEventStore() {
     error,
 
     /*
-    |----------------------------------------------------------------------
-    | GETTERS
-    |----------------------------------------------------------------------
+    --------------------------------------------------------------------------
+    GETTERS
+    --------------------------------------------------------------------------
     */
 
     totalEvents,
     activeEvents,
 
     /*
-    |----------------------------------------------------------------------
-    | ACTIONS
-    |----------------------------------------------------------------------
+    --------------------------------------------------------------------------
+    ACTIONS
+    --------------------------------------------------------------------------
     */
 
-    fetchEvents,
+    loadEvents,
     addEvent,
     editEvent,
     removeEvent
