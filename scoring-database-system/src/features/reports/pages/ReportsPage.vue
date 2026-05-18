@@ -1,28 +1,69 @@
+<script setup>
+import { onMounted } from 'vue'
+
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+
+import ReportsHeader from '../components/ReportsHeader.vue'
+import ReportsStats from '../components/ReportsStats.vue'
+import ReportsTable from '../components/ReportsTable.vue'
+import ReportsEmptyState from '../components/ReportsEmptyState.vue'
+
+import {
+  useReportsStore
+} from '../store/reportsStore'
+
+const {
+
+  reports,
+
+  loading,
+
+  totalReports,
+
+  winners,
+
+  loadReports
+
+} = useReportsStore()
+
+onMounted(async () => {
+
+  await loadReports()
+})
+</script>
+
 <template>
-  <div>
 
-    <div class="mb-md">
-      <h1>Reports</h1>
-    </div>
+  <div class="reports-page">
 
-    <div class="reports-grid">
+    <ReportsHeader />
 
-      <div class="card-base">
-        <h2>Game Results Report</h2>
-        <p>Generate official game result summaries.</p>
-      </div>
+    <ReportsStats
+      :total-reports="totalReports"
+      :winners="winners"
+    />
 
-      <div class="card-base">
-        <h2>Participation Report</h2>
-        <p>Generate team participation records.</p>
-      </div>
+    <LoadingSpinner
+      v-if="loading"
+    />
 
-      <div class="card-base">
-        <h2>Criteria Scores Report</h2>
-        <p>Generate judging score breakdowns.</p>
-      </div>
+    <ReportsTable
+      v-else-if="reports.length"
+      :reports="reports"
+    />
 
-    </div>
+    <ReportsEmptyState
+      v-else
+    />
 
   </div>
+
 </template>
+
+<style scoped>
+.reports-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+</style>
