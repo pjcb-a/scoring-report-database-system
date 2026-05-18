@@ -1,41 +1,105 @@
+<script setup>
+import { onMounted, ref } from 'vue'
+
+import Modal from '@/components/common/Modal.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+
+import GameHeader from '../components/GameHeader.vue'
+import GameStats from '../components/GameStats.vue'
+import GameTable from '../components/GameTable.vue'
+import GameForm from '../components/GameForm.vue'
+import GameEmptyState from '../components/GameEmptyState.vue'
+
+import {
+  useGameStore
+} from '../store/gameStore'
+
+const openModal = ref(false)
+
+const {
+
+  games,
+
+  eventSports,
+
+  loading,
+
+  totalGames,
+
+  activeGames,
+
+  loadGames,
+
+  loadEventSports,
+
+  addGame
+
+} = useGameStore()
+
+const handleCreateGame = async (
+  payload
+) => {
+
+  await addGame(payload)
+
+  openModal.value = false
+}
+
+onMounted(async () => {
+
+  await loadGames()
+
+  await loadEventSports()
+})
+</script>
+
 <template>
-  <div>
 
-    <div class="flex justify-between align-center mb-md">
-      <h1>Games</h1>
+  <div class="games-page">
 
-      <button class="btn-primary">
-        Add Game
-      </button>
-    </div>
+    <GameHeader
+      @add="openModal = true"
+    />
 
-    <div class="card-base">
+    <GameStats
+      :total-games="totalGames"
+      :active-games="activeGames"
+    />
 
-      <table class="data-table">
+    <LoadingSpinner
+      v-if="loading"
+    />
 
-        <thead>
-          <tr>
-            <th>Match</th>
-            <th>Round</th>
-            <th>Status</th>
-          </tr>
-        </thead>
+    <GameTable
+      v-else-if="games.length"
+      :games="games"
+    />
 
-        <tbody>
-          <tr>
-            <td>CCS vs CBA</td>
-            <td>Finals</td>
-            <td>
-              <span class="badge-live">
-                LIVE
-              </span>
-            </td>
-          </tr>
-        </tbody>
+    <GameEmptyState
+      v-else
+    />
 
-      </table>
+    <Modal
+      :is-open="openModal"
+      title="Create Game"
+      @close="openModal = false"
+    >
 
-    </div>
+      <GameForm
+        :event-sports="eventSports"
+        @submit="handleCreateGame"
+      />
+
+    </Modal>
 
   </div>
+
 </template>
+
+<style scoped>
+.games-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+</style>
