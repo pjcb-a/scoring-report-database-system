@@ -6,14 +6,33 @@ class Criteria(db.Model):
 
     criteria_id = db.Column(db.Integer, primary_key=True)
 
+    """
+    --------------------------------------------------------------------------
+    FOREIGN KEYS
+    --------------------------------------------------------------------------
+    """
+
     sport_id = db.Column(
         db.Integer,
         db.ForeignKey("sports.sport_id"),
         nullable=False
     )
 
+    """
+    --------------------------------------------------------------------------
+    ATTRIBUTES
+    --------------------------------------------------------------------------
+    """
+
     criteria_name = db.Column(db.String(150), nullable=False)
     percentage_weight = db.Column(db.Float, nullable=False)
+
+    """
+    --------------------------------------------------------------------------
+    RELATIONSHIPS
+    --------------------------------------------------------------------------
+    """
+
 
     sport = db.relationship(
         "Sport",
