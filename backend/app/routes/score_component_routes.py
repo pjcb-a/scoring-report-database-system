@@ -19,7 +19,7 @@ def get_score_components():
             "score_component_id": component.score_component_id,
             "judge": component.judge.judge_name,
             "criteria": component.criteria.criteria_name,
-            "score_value": component.score_value
+            "score_value": component.score_value,
         })
 
     return jsonify(result)
@@ -34,7 +34,7 @@ def create_score_component():
         game_score_id=data["game_score_id"],
         criteria_id=data["criteria_id"],
         judge_id=data["judge_id"],
-        score_value=data["score_value"]
+        score_value=data["score_value"],
     )
 
     db.session.add(component)

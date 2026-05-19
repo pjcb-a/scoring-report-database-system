@@ -21,6 +21,9 @@
 </template>
 
 <style scoped>
+header {
+  padding: 35px;
+}
 .navbar {
   height: 72px;
 

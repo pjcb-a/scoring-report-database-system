@@ -5,7 +5,7 @@
     <div class="sidebar-header">
 
       <h1 class="sidebar-logo">
-        SRDS
+        BRRT
       </h1>
 
       <p class="sidebar-subtitle">
@@ -62,11 +62,12 @@
   width: 260px;
   min-height: 100vh;
 
-  background-color: var(--white);
+  background-color: var(--adnu-blue-dark);
 
   border-right: 1px solid var(--border-color);
 
   padding: 20px;
+  border-radius: 0 15px 15px 0;
 }
 
 .sidebar-header {
@@ -76,7 +77,7 @@
 .sidebar-logo {
   font-size: 28px;
   font-weight: 800;
-  color: var(--adnu-blue-dark);
+  color: var(--adnu-danger-light);
 }
 
 .sidebar-subtitle {
@@ -88,6 +89,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  color: var(--adnu-blue-light);
 }
 
 .sidebar-link {

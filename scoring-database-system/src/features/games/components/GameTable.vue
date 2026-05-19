@@ -110,41 +110,6 @@ const getBadgeVariant = (status) => {
 
 </template>
 
-<script setup>
-import Badge from '@/components/ui/Badge.vue'
-
-defineProps({
-
-  games: {
-    type: Array,
-    required: true
-  }
-})
-
-const formatDate = (date) => {
-
-  if (!date) return 'N/A'
-
-  return new Date(date)
-    .toLocaleString()
-}
-
-const getBadgeVariant = (status) => {
-
-  switch (status) {
-
-    case 'Completed':
-      return 'primary'
-
-    case 'Ongoing':
-      return 'success'
-
-    default:
-      return 'warning'
-  }
-}
-</script>
-
 <style scoped>
 .table-container {
   overflow-x: auto;
