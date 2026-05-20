@@ -1,192 +1,203 @@
-import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
+
+import { ref } from 'vue'
 
 import {
 
-  fetchGames,
+  getGamesByEvent,
 
   createGame,
 
   updateGame,
 
-  deleteGame,
-
-  fetchEventSports
+  deleteGame
 
 } from '../services/gameService'
 
+import {
 
-/*
-|--------------------------------------------------------------------------
-| STATE
-|--------------------------------------------------------------------------
-*/
+  useEventContextStore
 
-const games = ref([])
-
-const eventSports = ref([])
-
-const loading = ref(false)
-
-const error = ref(null)
+} from '@/features/events/store/eventContextStore'
 
 
-/*
-|--------------------------------------------------------------------------
-| GETTERS
-|--------------------------------------------------------------------------
-*/
+export const useGameStore = defineStore(
 
-const totalGames = computed(() => {
-  return games.value.length
-})
+  'gameStore',
 
-const activeGames = computed(() => {
+  () => {
 
-  return games.value.filter(
-    game => game.game_status === 'Ongoing'
-  ).length
-})
+    /*
+    --------------------------------------------------------------------------
+    STATE
+    --------------------------------------------------------------------------
+    */
 
+    const games = ref([])
 
-/*
-|--------------------------------------------------------------------------
-| ACTIONS
-|--------------------------------------------------------------------------
-*/
+    const loading = ref(false)
 
-const loadGames = async () => {
+    const error = ref(null)
 
-  loading.value = true
+    /*
+    --------------------------------------------------------------------------
+    EVENT CONTEXT
+    --------------------------------------------------------------------------
+    */
 
-  error.value = null
+    const eventContextStore =
+      useEventContextStore()
 
-  try {
+    /*
+    --------------------------------------------------------------------------
+    LOAD GAMES
+    --------------------------------------------------------------------------
+    */
 
-    games.value =
-      await fetchGames()
+    const loadGames = async () => {
 
-  } catch (err) {
+      if (
+        !eventContextStore.currentEventId
+      ) {
+        return
+      }
 
-    console.error(err)
+      loading.value = true
 
-    error.value =
-      err.message || 'Failed to load games.'
+      error.value = null
 
-  } finally {
+      try {
 
-    loading.value = false
+        const response =
+          await getGamesByEvent(
+
+            eventContextStore.currentEventId
+          )
+
+        games.value =
+          response.data || []
+
+      } catch (err) {
+
+        console.error(err)
+
+        error.value =
+          err.message ||
+          'Failed to load games.'
+
+      } finally {
+
+        loading.value = false
+      }
+    }
+
+    /*
+    --------------------------------------------------------------------------
+    CREATE GAME
+    --------------------------------------------------------------------------
+    */
+
+    const addGame =
+      async (payload) => {
+
+        try {
+
+          await createGame(payload)
+
+          await loadGames()
+
+        } catch (err) {
+
+          console.error(err)
+
+          throw err
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    UPDATE GAME
+    --------------------------------------------------------------------------
+    */
+
+    const editGame =
+      async (
+        gameId,
+        payload
+      ) => {
+
+        try {
+
+          await updateGame(
+            gameId,
+            payload
+          )
+
+          await loadGames()
+
+        } catch (err) {
+
+          console.error(err)
+
+          throw err
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    DELETE GAME
+    --------------------------------------------------------------------------
+    */
+
+    const removeGame =
+      async (gameId) => {
+
+        try {
+
+          await deleteGame(gameId)
+
+          games.value =
+            games.value.filter(
+
+              game =>
+                game.game_id !== gameId
+            )
+
+        } catch (err) {
+
+          console.error(err)
+
+          throw err
+        }
+      }
+
+    return {
+
+      /*
+      ------------------------------------------------------------------------
+      STATE
+      ------------------------------------------------------------------------
+      */
+
+      games,
+
+      loading,
+
+      error,
+
+      /*
+      ------------------------------------------------------------------------
+      METHODS
+      ------------------------------------------------------------------------
+      */
+
+      loadGames,
+
+      addGame,
+
+      editGame,
+
+      removeGame
+    }
   }
-}
-
-
-const loadEventSports = async () => {
-
-  try {
-
-    eventSports.value =
-      await fetchEventSports()
-
-  } catch (err) {
-
-    console.error(err)
-  }
-}
-
-
-const addGame = async (
-  payload
-) => {
-
-  try {
-
-    await createGame(payload)
-
-    await loadGames()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to create game.'
-  }
-}
-
-
-const editGame = async (
-  gameId,
-  payload
-) => {
-
-  try {
-
-    await updateGame(
-      gameId,
-      payload
-    )
-
-    await loadGames()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to update game.'
-  }
-}
-
-
-const removeGame = async (
-  gameId
-) => {
-
-  try {
-
-    await deleteGame(gameId)
-
-    await loadGames()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to delete game.'
-  }
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| STORE EXPORT
-|--------------------------------------------------------------------------
-*/
-
-export function useGameStore() {
-
-  return {
-
-    games,
-
-    eventSports,
-
-    loading,
-
-    error,
-
-    totalGames,
-
-    activeGames,
-
-    loadGames,
-
-    loadEventSports,
-
-    addGame,
-
-    editGame,
-
-    removeGame
-  }
-}
+)

@@ -1,103 +1,246 @@
 <script setup>
-import { onMounted, ref } from 'vue'
 
-import Modal from '@/components/common/Modal.vue'
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import { onMounted } from 'vue'
 
-import SportHeader from '../components/SportHeader.vue'
-import SportStats from '../components/SportStats.vue'
-import SportTable from '../components/SportTable.vue'
-import SportForm from '../components/SportForm.vue'
-import SportEmptyState from '../components/SportEmptyState.vue'
+import { useRouter } from 'vue-router'
 
-import { useSportStore } from '../store/sportStore'
+import { storeToRefs } from 'pinia'
 
-const openModal = ref(false)
+import {
+
+  useEventContextStore
+
+} from '@/features/events/store/eventContextStore'
+
+import {
+
+  useSportStore
+
+} from '../store/sportStore'
+
+
+/*
+|--------------------------------------------------------------------------
+| ROUTER
+|--------------------------------------------------------------------------
+*/
+
+const router = useRouter()
+
+/*
+|--------------------------------------------------------------------------
+| EVENT CONTEXT
+|--------------------------------------------------------------------------
+*/
+
+const eventContextStore =
+  useEventContextStore()
+
+const {
+
+  currentEvent
+
+} = storeToRefs(
+  eventContextStore
+)
+
+/*
+|--------------------------------------------------------------------------
+| SPORT STORE
+|--------------------------------------------------------------------------
+*/
+
+const sportStore =
+  useSportStore()
 
 const {
 
   sports,
 
-  scoringTypes,
-
   loading,
 
-  totalSports,
+  error
 
-  componentSports,
+} = storeToRefs(
+  sportStore
+)
 
-  loadSports,
 
-  loadScoringTypes,
-
-  addSport
-
-} = useSportStore()
-
-const handleCreateSport = async (
-  payload
-) => {
-
-  await addSport(payload)
-
-  openModal.value = false
-}
+/*
+|--------------------------------------------------------------------------
+| INITIALIZE
+|--------------------------------------------------------------------------
+*/
 
 onMounted(async () => {
 
-  await loadSports()
+  /*
+  --------------------------------------------------------------------------
+  VALIDATE EVENT CONTEXT
+  --------------------------------------------------------------------------
+  */
 
-  await loadScoringTypes()
+  if (!currentEvent.value) {
+
+    router.push('/events')
+
+    return
+  }
+
+  /*
+  --------------------------------------------------------------------------
+  LOAD EVENT SPORTS
+  --------------------------------------------------------------------------
+  */
+
+  await sportStore.loadSports()
 })
+
 </script>
 
 <template>
 
-  <div class="sports-page">
+  <section class="sport-page">
 
-    <SportHeader
-      @add="openModal = true"
-    />
+    <!--
+    ------------------------------------------------------------------------
+    HEADER
+    ------------------------------------------------------------------------
+    -->
 
-    <SportStats
-      :total-sports="totalSports"
-      :component-sports="componentSports"
-    />
+    <div class="sport-page-header">
 
-    <LoadingSpinner
+      <h1 class="sport-page-title">
+
+        {{ currentEvent?.event_name }}
+
+      </h1>
+
+      <p class="sport-page-subtitle">
+
+        Event Sports
+
+      </p>
+
+    </div>
+
+    <!--
+    ------------------------------------------------------------------------
+    LOADING
+    ------------------------------------------------------------------------
+    -->
+
+    <div
       v-if="loading"
-    />
+      class="sport-loading"
+    >
+      Loading sports...
+    </div>
 
-    <SportTable
-      v-else-if="sports.length"
-      :sports="sports"
-    />
+    <!--
+    ------------------------------------------------------------------------
+    ERROR
+    ------------------------------------------------------------------------
+    -->
 
-    <SportEmptyState
+    <div
+      v-else-if="error"
+      class="sport-error"
+    >
+      {{ error }}
+    </div>
+
+    <!--
+    ------------------------------------------------------------------------
+    SPORT LIST
+    ------------------------------------------------------------------------
+    -->
+
+    <div
       v-else
-    />
-
-    <Modal
-      :is-open="openModal"
-      title="Create Sport"
-      @close="openModal = false"
+      class="sport-grid"
     >
 
-      <SportForm
-        :scoring-types="scoringTypes"
-        @submit="handleCreateSport"
-      />
+      <div
+        v-for="sport in sports"
+        :key="sport.event_sport_id"
+        class="sport-card"
+      >
 
-    </Modal>
+        <h3>
 
-  </div>
+          {{ sport.sport_name }}
+
+        </h3>
+
+        <p>
+
+          {{ sport.scoring_type }}
+
+        </p>
+
+      </div>
+
+    </div>
+
+  </section>
 
 </template>
 
 <style scoped>
-.sports-page {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+
+.sport-page {
+
+  padding: 30px;
 }
+
+.sport-page-header {
+
+  margin-bottom: 30px;
+}
+
+.sport-page-title {
+
+  font-size: 32px;
+
+  font-weight: 800;
+}
+
+.sport-page-subtitle {
+
+  margin-top: 6px;
+
+  color: var(--text-muted);
+}
+
+.sport-loading,
+.sport-error {
+
+  padding: 30px;
+
+  text-align: center;
+}
+
+.sport-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(220px, 1fr));
+
+  gap: 20px;
+}
+
+.sport-card {
+
+  background-color: var(--white);
+
+  border:
+    1px solid var(--border-color);
+
+  border-radius: var(--radius-lg);
+
+  padding: 20px;
+}
+
 </style>

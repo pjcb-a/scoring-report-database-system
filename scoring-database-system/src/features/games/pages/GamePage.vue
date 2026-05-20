@@ -1,105 +1,258 @@
 <script setup>
-import { onMounted, ref } from 'vue'
 
-import Modal from '@/components/common/Modal.vue'
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import { onMounted } from 'vue'
 
-import GameHeader from '../components/GameHeader.vue'
-import GameStats from '../components/GameStats.vue'
-import GameTable from '../components/GameTable.vue'
-import GameForm from '../components/GameForm.vue'
-import GameEmptyState from '../components/GameEmptyState.vue'
+import { useRouter } from 'vue-router'
+
+import { storeToRefs } from 'pinia'
 
 import {
+
+  useEventContextStore
+
+} from '@/features/events/store/eventContextStore'
+
+import {
+
   useGameStore
+
 } from '../store/gameStore'
 
-const openModal = ref(false)
+
+/*
+|--------------------------------------------------------------------------
+| ROUTER
+|--------------------------------------------------------------------------
+*/
+
+const router = useRouter()
+
+/*
+|--------------------------------------------------------------------------
+| EVENT CONTEXT
+|--------------------------------------------------------------------------
+*/
+
+const eventContextStore =
+  useEventContextStore()
+
+const {
+
+  currentEvent
+
+} = storeToRefs(
+  eventContextStore
+)
+
+/*
+|--------------------------------------------------------------------------
+| GAME STORE
+|--------------------------------------------------------------------------
+*/
+
+const gameStore =
+  useGameStore()
 
 const {
 
   games,
 
-  eventSports,
-
   loading,
 
-  totalGames,
+  error
 
-  activeGames,
+} = storeToRefs(
+  gameStore
+)
 
-  loadGames,
 
-  loadEventSports,
-
-  addGame
-
-} = useGameStore()
-
-const handleCreateGame = async (
-  payload
-) => {
-
-  await addGame(payload)
-
-  openModal.value = false
-}
+/*
+|--------------------------------------------------------------------------
+| INITIALIZE
+|--------------------------------------------------------------------------
+*/
 
 onMounted(async () => {
 
-  await loadGames()
+  /*
+  --------------------------------------------------------------------------
+  VALIDATE EVENT CONTEXT
+  --------------------------------------------------------------------------
+  */
 
-  await loadEventSports()
+  if (!currentEvent.value) {
+
+    router.push('/events')
+
+    return
+  }
+
+  /*
+  --------------------------------------------------------------------------
+  LOAD EVENT GAMES
+  --------------------------------------------------------------------------
+  */
+
+  await gameStore.loadGames()
 })
+
 </script>
 
 <template>
 
-  <div class="games-page">
+  <section class="game-page">
 
-    <GameHeader
-      @add="openModal = true"
-    />
+    <!--
+    ------------------------------------------------------------------------
+    HEADER
+    ------------------------------------------------------------------------
+    -->
 
-    <GameStats
-      :total-games="totalGames"
-      :active-games="activeGames"
-    />
+    <div class="game-page-header">
 
-    <LoadingSpinner
+      <h1 class="game-page-title">
+
+        {{ currentEvent?.event_name }}
+
+      </h1>
+
+      <p class="game-page-subtitle">
+
+        Event Games
+
+      </p>
+
+    </div>
+
+    <!--
+    ------------------------------------------------------------------------
+    LOADING
+    ------------------------------------------------------------------------
+    -->
+
+    <div
       v-if="loading"
-    />
+      class="game-loading"
+    >
+      Loading games...
+    </div>
 
-    <GameTable
-      v-else-if="games.length"
-      :games="games"
-    />
+    <!--
+    ------------------------------------------------------------------------
+    ERROR
+    ------------------------------------------------------------------------
+    -->
 
-    <GameEmptyState
+    <div
+      v-else-if="error"
+      class="game-error"
+    >
+      {{ error }}
+    </div>
+
+    <!--
+    ------------------------------------------------------------------------
+    GAME LIST
+    ------------------------------------------------------------------------
+    -->
+
+    <div
       v-else
-    />
-
-    <Modal
-      :is-open="openModal"
-      title="Create Game"
-      @close="openModal = false"
+      class="game-grid"
     >
 
-      <GameForm
-        :event-sports="eventSports"
-        @submit="handleCreateGame"
-      />
+      <div
+        v-for="game in games"
+        :key="game.game_id"
+        class="game-card"
+      >
 
-    </Modal>
+        <h3>
 
-  </div>
+          {{ game.sport_name }}
+
+        </h3>
+
+        <p>
+
+          {{ game.round }}
+
+        </p>
+
+        <p>
+
+          {{ game.game_status }}
+
+        </p>
+
+        <p>
+
+          {{ game.venue_name }}
+
+        </p>
+
+      </div>
+
+    </div>
+
+  </section>
 
 </template>
 
 <style scoped>
-.games-page {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+
+.game-page {
+
+  padding: 30px;
 }
+
+.game-page-header {
+
+  margin-bottom: 30px;
+}
+
+.game-page-title {
+
+  font-size: 32px;
+
+  font-weight: 800;
+}
+
+.game-page-subtitle {
+
+  margin-top: 6px;
+
+  color: var(--text-muted);
+}
+
+.game-loading,
+.game-error {
+
+  padding: 30px;
+
+  text-align: center;
+}
+
+.game-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(240px, 1fr));
+
+  gap: 20px;
+}
+
+.game-card {
+
+  background-color: var(--white);
+
+  border:
+    1px solid var(--border-color);
+
+  border-radius: var(--radius-lg);
+
+  padding: 20px;
+}
+
 </style>

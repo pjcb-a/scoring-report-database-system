@@ -1,45 +1,19 @@
-import api, { unwrapData } from '@/services/api'
+import api from '@/services/axios'
 
 
 /*
 |--------------------------------------------------------------------------
-| GET REPORT DATA
+| GET EVENT RANKINGS
 |--------------------------------------------------------------------------
 */
 
-export const fetchReports = async () => {
+export const getEventRankings =
+  async (eventId) => {
 
-  const response = await api.get(
-    '/reports'
-  )
+    const response = await api.get(
 
-  return unwrapData(response)
-}
+      `/events/${eventId}/reports/rankings`
+    )
 
-export const fetchParticipationReports = async () => {
-  const response = await api.get('/reports/participation')
-
-  return unwrapData(response)
-}
-
-export const fetchJudgingReports = async () => {
-  const response = await api.get('/reports/judging-summary')
-
-  return unwrapData(response)
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| GET EVENTS
-|--------------------------------------------------------------------------
-*/
-
-export const fetchEvents = async () => {
-
-  const response = await api.get(
-    '/events'
-  )
-
-  return unwrapData(response)
+    return response.data
 }

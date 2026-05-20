@@ -1,20 +1,57 @@
 <script setup>
-import { onMounted, ref } from 'vue'
 
-import Modal from '@/components/common/Modal.vue'
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import { onMounted } from 'vue'
 
-import TeamHeader from '../components/TeamHeader.vue'
-import TeamStats from '../components/TeamStats.vue'
-import TeamTable from '../components/TeamTable.vue'
-import TeamForm from '../components/TeamForm.vue'
-import TeamEmptyState from '../components/TeamEmptyState.vue'
+import { useRouter } from 'vue-router'
+
+import { storeToRefs } from 'pinia'
 
 import {
+
+  useEventContextStore
+
+} from '@/features/events/store/eventContextStore'
+
+import {
+
   useTeamStore
+
 } from '../store/teamStore'
 
-const openModal = ref(false)
+
+/*
+|--------------------------------------------------------------------------
+| ROUTER
+|--------------------------------------------------------------------------
+*/
+
+const router = useRouter()
+
+/*
+|--------------------------------------------------------------------------
+| EVENT CONTEXT
+|--------------------------------------------------------------------------
+*/
+
+const eventContextStore =
+  useEventContextStore()
+
+const {
+
+  currentEvent
+
+} = storeToRefs(
+  eventContextStore
+)
+
+/*
+|--------------------------------------------------------------------------
+| TEAM STORE
+|--------------------------------------------------------------------------
+*/
+
+const teamStore =
+  useTeamStore()
 
 const {
 
@@ -22,75 +59,199 @@ const {
 
   loading,
 
-  totalTeams,
+  error
 
-  loadTeams,
+} = storeToRefs(
+  teamStore
+)
 
-  addTeam
 
-} = useTeamStore()
-
-const handleCreateTeam = async (
-  payload
-) => {
-
-  await addTeam(payload)
-
-  openModal.value = false
-}
+/*
+|--------------------------------------------------------------------------
+| INITIALIZE
+|--------------------------------------------------------------------------
+*/
 
 onMounted(async () => {
 
-  await loadTeams()
+  /*
+  --------------------------------------------------------------------------
+  VALIDATE EVENT CONTEXT
+  --------------------------------------------------------------------------
+  */
+
+  if (!currentEvent.value) {
+
+    router.push('/events')
+
+    return
+  }
+
+  /*
+  --------------------------------------------------------------------------
+  LOAD EVENT TEAMS
+  --------------------------------------------------------------------------
+  */
+
+  await teamStore.loadTeams()
 })
+
 </script>
 
 <template>
 
-  <div class="teams-page">
+  <section class="team-page">
 
-    <TeamHeader
-      @add="openModal = true"
-    />
+    <!--
+    ------------------------------------------------------------------------
+    HEADER
+    ------------------------------------------------------------------------
+    -->
 
-    <TeamStats
-      :total-teams="totalTeams"
-    />
+    <div class="team-page-header">
 
-    <LoadingSpinner
+      <h1 class="team-page-title">
+
+        {{ currentEvent?.event_name }}
+
+      </h1>
+
+      <p class="team-page-subtitle">
+
+        Event Teams
+
+      </p>
+
+    </div>
+
+    <!--
+    ------------------------------------------------------------------------
+    LOADING
+    ------------------------------------------------------------------------
+    -->
+
+    <div
       v-if="loading"
-    />
+      class="team-loading"
+    >
+      Loading teams...
+    </div>
 
-    <TeamTable
-      v-else-if="teams.length"
-      :teams="teams"
-    />
+    <!--
+    ------------------------------------------------------------------------
+    ERROR
+    ------------------------------------------------------------------------
+    -->
 
-    <TeamEmptyState
+    <div
+      v-else-if="error"
+      class="team-error"
+    >
+      {{ error }}
+    </div>
+
+    <!--
+    ------------------------------------------------------------------------
+    TEAM LIST
+    ------------------------------------------------------------------------
+    -->
+
+    <div
       v-else
-    />
-
-    <Modal
-      :is-open="openModal"
-      title="Create Team"
-      @close="openModal = false"
+      class="team-grid"
     >
 
-      <TeamForm
-        @submit="handleCreateTeam"
-      />
+      <div
+        v-for="team in teams"
+        :key="team.team_id"
+        class="team-card"
+      >
 
-    </Modal>
+        <div
+          class="team-color"
+          :style="{
+            backgroundColor:
+              team.team_color
+          }"
+        />
 
-  </div>
+        <h3>
+          {{ team.team_name }}
+        </h3>
+
+      </div>
+
+    </div>
+
+  </section>
 
 </template>
 
 <style scoped>
-.teams-page {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-</style>
 
+.team-page {
+
+  padding: 30px;
+}
+
+.team-page-header {
+
+  margin-bottom: 30px;
+}
+
+.team-page-title {
+
+  font-size: 32px;
+
+  font-weight: 800;
+}
+
+.team-page-subtitle {
+
+  margin-top: 6px;
+
+  color: var(--text-muted);
+}
+
+.team-loading,
+.team-error {
+
+  padding: 30px;
+
+  text-align: center;
+}
+
+.team-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(220px, 1fr));
+
+  gap: 20px;
+}
+
+.team-card {
+
+  background-color: var(--white);
+
+  border:
+    1px solid var(--border-color);
+
+  border-radius: var(--radius-lg);
+
+  padding: 20px;
+}
+
+.team-color {
+
+  width: 50px;
+
+  height: 50px;
+
+  border-radius: 50%;
+
+  margin-bottom: 16px;
+}
+
+</style>

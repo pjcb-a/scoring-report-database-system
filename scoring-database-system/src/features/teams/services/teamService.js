@@ -1,38 +1,59 @@
-import api, { unwrapData } from '@/services/api'
+import api from '@/services/axios'
 
 
 /*
 |--------------------------------------------------------------------------
-| GET ALL TEAMS
+| GET TEAMS OF EVENT
 |--------------------------------------------------------------------------
 */
 
-export const fetchTeams = async () => {
+export const getTeamsByEvent =
+  async (eventId) => {
 
-  const response = await api.get(
-    '/teams'
-  )
+    const response = await api.get(
 
-  return unwrapData(response)
+      `/events/${eventId}/teams`
+    )
+
+    return response.data
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| CREATE TEAM
+| GET SINGLE TEAM
 |--------------------------------------------------------------------------
 */
 
-export const createTeam = async (
-  payload
-) => {
+export const getTeam =
+  async (teamId) => {
 
-  const response = await api.post(
-    '/teams',
-    payload
-  )
+    const response = await api.get(
 
-  return unwrapData(response)
+      `/teams/${teamId}`
+    )
+
+    return response.data
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| CREATE TEAM INSIDE EVENT
+|--------------------------------------------------------------------------
+*/
+
+export const createTeam =
+  async (eventId, payload) => {
+
+    const response = await api.post(
+
+      `/events/${eventId}/teams`,
+
+      payload
+    )
+
+    return response.data
 }
 
 
@@ -42,17 +63,17 @@ export const createTeam = async (
 |--------------------------------------------------------------------------
 */
 
-export const updateTeam = async (
-  teamId,
-  payload
-) => {
+export const updateTeam =
+  async (teamId, payload) => {
 
-  const response = await api.put(
-    `/teams/${teamId}`,
-    payload
-  )
+    const response = await api.put(
 
-  return unwrapData(response)
+      `/teams/${teamId}`,
+
+      payload
+    )
+
+    return response.data
 }
 
 
@@ -62,13 +83,13 @@ export const updateTeam = async (
 |--------------------------------------------------------------------------
 */
 
-export const deleteTeam = async (
-  teamId
-) => {
+export const deleteTeam =
+  async (teamId) => {
 
-  const response = await api.delete(
-    `/teams/${teamId}`
-  )
+    const response = await api.delete(
 
-  return unwrapData(response)
+      `/teams/${teamId}`
+    )
+
+    return response.data
 }

@@ -1,194 +1,237 @@
-import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
+
+import { ref } from 'vue'
 
 import {
 
-  fetchSports,
+  getSports,
+
+  getSportsByEvent,
 
   createSport,
 
-  updateSport,
+  addSportToEvent,
 
-  deleteSport,
-
-  fetchScoringTypes
+  removeEventSport
 
 } from '../services/sportService'
 
+import {
 
-/*
-|--------------------------------------------------------------------------
-| STATE
-|--------------------------------------------------------------------------
-*/
+  useEventContextStore
 
-const sports = ref([])
-
-const scoringTypes = ref([])
-
-const loading = ref(false)
-
-const error = ref(null)
+} from '@/features/events/store/eventContextStore'
 
 
-/*
-|--------------------------------------------------------------------------
-| GETTERS
-|--------------------------------------------------------------------------
-*/
+export const useSportStore = defineStore(
 
-const totalSports = computed(() => {
-  return sports.value.length
-})
+  'sportStore',
 
-const componentSports = computed(() => {
+  () => {
 
-  return sports.value.filter(
-    sport =>
-      sport.scoring_type ===
-      'Component Score'
-  ).length
-})
+    /*
+    --------------------------------------------------------------------------
+    STATE
+    --------------------------------------------------------------------------
+    */
 
+    const sports = ref([])
 
-/*
-|--------------------------------------------------------------------------
-| ACTIONS
-|--------------------------------------------------------------------------
-*/
+    const masterSports = ref([])
 
-const loadSports = async () => {
+    const loading = ref(false)
 
-  loading.value = true
+    const error = ref(null)
 
-  error.value = null
+    /*
+    --------------------------------------------------------------------------
+    EVENT CONTEXT
+    --------------------------------------------------------------------------
+    */
 
-  try {
+    const eventContextStore =
+      useEventContextStore()
 
-    sports.value =
-      await fetchSports()
+    /*
+    --------------------------------------------------------------------------
+    LOAD EVENT SPORTS
+    --------------------------------------------------------------------------
+    */
 
-  } catch (err) {
+    const loadSports = async () => {
 
-    console.error(err)
+      if (
+        !eventContextStore.currentEventId
+      ) {
+        return
+      }
 
-    error.value =
-      err.message || 'Failed to load sports.'
+      loading.value = true
 
-  } finally {
+      error.value = null
 
-    loading.value = false
+      try {
+
+        const response =
+          await getSportsByEvent(
+
+            eventContextStore.currentEventId
+          )
+
+        sports.value =
+          response.data || []
+
+      } catch (err) {
+
+        console.error(err)
+
+        error.value =
+          err.message ||
+          'Failed to load sports.'
+
+      } finally {
+
+        loading.value = false
+      }
+    }
+
+    /*
+    --------------------------------------------------------------------------
+    LOAD MASTER SPORTS
+    --------------------------------------------------------------------------
+    */
+
+    const loadMasterSports =
+      async () => {
+
+        try {
+
+          const response =
+            await getSports()
+
+          masterSports.value =
+            response.data || []
+
+        } catch (err) {
+
+          console.error(err)
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    CREATE MASTER SPORT
+    --------------------------------------------------------------------------
+    */
+
+    const addMasterSport =
+      async (payload) => {
+
+        try {
+
+          await createSport(payload)
+
+          await loadMasterSports()
+
+        } catch (err) {
+
+          console.error(err)
+
+          throw err
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    ADD SPORT TO EVENT
+    --------------------------------------------------------------------------
+    */
+
+    const addSport =
+      async (payload) => {
+
+        try {
+
+          await addSportToEvent(
+
+            eventContextStore.currentEventId,
+
+            payload
+          )
+
+          await loadSports()
+
+        } catch (err) {
+
+          console.error(err)
+
+          throw err
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    REMOVE EVENT SPORT
+    --------------------------------------------------------------------------
+    */
+
+    const deleteSport =
+      async (eventSportId) => {
+
+        try {
+
+          await removeEventSport(
+            eventSportId
+          )
+
+          sports.value =
+            sports.value.filter(
+
+              sport =>
+
+                sport.event_sport_id
+                !== eventSportId
+            )
+
+        } catch (err) {
+
+          console.error(err)
+
+          throw err
+        }
+      }
+
+    return {
+
+      /*
+      ------------------------------------------------------------------------
+      STATE
+      ------------------------------------------------------------------------
+      */
+
+      sports,
+
+      masterSports,
+
+      loading,
+
+      error,
+
+      /*
+      ------------------------------------------------------------------------
+      METHODS
+      ------------------------------------------------------------------------
+      */
+
+      loadSports,
+
+      loadMasterSports,
+
+      addMasterSport,
+
+      addSport,
+
+      deleteSport
+    }
   }
-}
-
-
-const loadScoringTypes = async () => {
-
-  try {
-
-    scoringTypes.value =
-      await fetchScoringTypes()
-
-  } catch (err) {
-
-    console.error(err)
-  }
-}
-
-
-const addSport = async (
-  payload
-) => {
-
-  try {
-
-    await createSport(payload)
-
-    await loadSports()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to create sport.'
-  }
-}
-
-
-const editSport = async (
-  sportId,
-  payload
-) => {
-
-  try {
-
-    await updateSport(
-      sportId,
-      payload
-    )
-
-    await loadSports()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to update sport.'
-  }
-}
-
-
-const removeSport = async (
-  sportId
-) => {
-
-  try {
-
-    await deleteSport(sportId)
-
-    await loadSports()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to delete sport.'
-  }
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| STORE EXPORT
-|--------------------------------------------------------------------------
-*/
-
-export function useSportStore() {
-
-  return {
-
-    sports,
-
-    scoringTypes,
-
-    loading,
-
-    error,
-
-    totalSports,
-
-    componentSports,
-
-    loadSports,
-
-    loadScoringTypes,
-
-    addSport,
-
-    editSport,
-
-    removeSport
-  }
-}
+)

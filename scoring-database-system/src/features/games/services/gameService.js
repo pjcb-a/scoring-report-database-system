@@ -1,19 +1,39 @@
-import api, { unwrapData } from '@/services/api'
+import api from '@/services/axios'
 
 
 /*
 |--------------------------------------------------------------------------
-| GET ALL GAMES
+| GET GAMES OF EVENT
 |--------------------------------------------------------------------------
 */
 
-export const fetchGames = async () => {
+export const getGamesByEvent =
+  async (eventId) => {
 
-  const response = await api.get(
-    '/games'
-  )
+    const response = await api.get(
 
-  return unwrapData(response)
+      `/events/${eventId}/games`
+    )
+
+    return response.data
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| GET SINGLE GAME
+|--------------------------------------------------------------------------
+*/
+
+export const getGame =
+  async (gameId) => {
+
+    const response = await api.get(
+
+      `/games/${gameId}`
+    )
+
+    return response.data
 }
 
 
@@ -23,16 +43,17 @@ export const fetchGames = async () => {
 |--------------------------------------------------------------------------
 */
 
-export const createGame = async (
-  payload
-) => {
+export const createGame =
+  async (payload) => {
 
-  const response = await api.post(
-    '/games',
-    payload
-  )
+    const response = await api.post(
 
-  return unwrapData(response)
+      '/games',
+
+      payload
+    )
+
+    return response.data
 }
 
 
@@ -42,17 +63,17 @@ export const createGame = async (
 |--------------------------------------------------------------------------
 */
 
-export const updateGame = async (
-  gameId,
-  payload
-) => {
+export const updateGame =
+  async (gameId, payload) => {
 
-  const response = await api.put(
-    `/games/${gameId}`,
-    payload
-  )
+    const response = await api.put(
 
-  return unwrapData(response)
+      `/games/${gameId}`,
+
+      payload
+    )
+
+    return response.data
 }
 
 
@@ -62,29 +83,13 @@ export const updateGame = async (
 |--------------------------------------------------------------------------
 */
 
-export const deleteGame = async (
-  gameId
-) => {
+export const deleteGame =
+  async (gameId) => {
 
-  const response = await api.delete(
-    `/games/${gameId}`
-  )
+    const response = await api.delete(
 
-  return unwrapData(response)
-}
+      `/games/${gameId}`
+    )
 
-
-/*
-|--------------------------------------------------------------------------
-| GET EVENT SPORTS
-|--------------------------------------------------------------------------
-*/
-
-export const fetchEventSports = async () => {
-
-  const response = await api.get(
-    '/event-sports'
-  )
-
-  return unwrapData(response)
+    return response.data
 }

@@ -1,90 +1,97 @@
-import api, { unwrapData } from '@/services/api'
+import api from '@/services/axios'
 
 
 /*
 |--------------------------------------------------------------------------
-| GET ALL SPORTS
+| GET MASTER SPORTS
 |--------------------------------------------------------------------------
+|
+| Global reusable sport types
+|
 */
 
-export const fetchSports = async () => {
+export const getSports =
+  async () => {
 
-  const response = await api.get(
-    '/sports'
-  )
+    const response = await api.get(
+      '/sports'
+    )
 
-  return unwrapData(response)
+    return response.data
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| CREATE SPORT
+| GET EVENT SPORTS
 |--------------------------------------------------------------------------
 */
 
-export const createSport = async (
-  payload
-) => {
+export const getSportsByEvent =
+  async (eventId) => {
 
-  const response = await api.post(
-    '/sports',
-    payload
-  )
+    const response = await api.get(
 
-  return unwrapData(response)
+      `/events/${eventId}/sports`
+    )
+
+    return response.data
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| UPDATE SPORT
+| CREATE MASTER SPORT
 |--------------------------------------------------------------------------
 */
 
-export const updateSport = async (
-  sportId,
-  payload
-) => {
+export const createSport =
+  async (payload) => {
 
-  const response = await api.put(
-    `/sports/${sportId}`,
-    payload
-  )
+    const response = await api.post(
 
-  return unwrapData(response)
+      '/sports',
+
+      payload
+    )
+
+    return response.data
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| DELETE SPORT
+| ADD SPORT TO EVENT
 |--------------------------------------------------------------------------
 */
 
-export const deleteSport = async (
-  sportId
-) => {
+export const addSportToEvent =
+  async (eventId, payload) => {
 
-  const response = await api.delete(
-    `/sports/${sportId}`
-  )
+    const response = await api.post(
 
-  return unwrapData(response)
+      `/events/${eventId}/sports`,
+
+      payload
+    )
+
+    return response.data
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| GET SCORING TYPES
+| DELETE EVENT SPORT
 |--------------------------------------------------------------------------
 */
 
-export const fetchScoringTypes = async () => {
+export const removeEventSport =
+  async (eventSportId) => {
 
-  const response = await api.get(
-    '/scoring-types'
-  )
+    const response = await api.delete(
 
-  return unwrapData(response)
+      `/event-sports/${eventSportId}`
+    )
+
+    return response.data
 }

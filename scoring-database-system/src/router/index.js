@@ -9,44 +9,160 @@ import ScoringPage from '@/features/scoring/pages/ScoringPage.vue'
 import JudgePage from '@/features/judging/pages/JudgePage.vue'
 import ReportsPage from '@/features/reports/pages/ReportsPage.vue'
 
+import { useEventContextStore }
+from '@/features/events/store/eventContextStore'
+
 const routes = [
+
   {
     path: '/',
-    component: DashboardPage
+
+    redirect: '/events'
   },
+
   {
     path: '/events',
+
+    name: 'events',
+
     component: EventPage
   },
+
   {
-    path: '/sports',
-    component: SportPage
+    path: '/events/:eventId/dashboard',
+
+    name: 'event-dashboard',
+
+    component: DashboardPage,
+
+    meta: {
+      requiresEvent: true
+    }
   },
+
   {
-    path: '/teams',
-    component: TeamPage
+    path: '/events/:eventId/sports',
+
+    name: 'event-sports',
+
+    component: SportPage,
+
+    meta: {
+      requiresEvent: true
+    }
   },
+
   {
-    path: '/games',
-    component: GamePage
+    path: '/events/:eventId/teams',
+
+    name: 'event-teams',
+
+    component: TeamPage,
+
+    meta: {
+      requiresEvent: true
+    }
   },
+
   {
-    path: '/scoring',
-    component: ScoringPage
+    path: '/events/:eventId/games',
+
+    name: 'event-games',
+
+    component: GamePage,
+
+    meta: {
+      requiresEvent: true
+    }
   },
+
   {
-    path: '/judging',
-    component: JudgePage
+    path: '/events/:eventId/scoring',
+
+    name: 'event-scoring',
+
+    component: ScoringPage,
+
+    meta: {
+      requiresEvent: true
+    }
   },
+
   {
-    path: '/reports',
-    component: ReportsPage
+    path: '/events/:eventId/judging',
+
+    name: 'event-judging',
+
+    component: JudgePage,
+
+    meta: {
+      requiresEvent: true
+    }
+  },
+
+  {
+    path: '/events/:eventId/reports',
+
+    name: 'event-reports',
+
+    component: ReportsPage,
+
+    meta: {
+      requiresEvent: true
+    }
   }
 ]
 
+/*
+|--------------------------------------------------------------------------
+| ROUTER INSTANCE
+|--------------------------------------------------------------------------
+*/
+
 const router = createRouter({
+
   history: createWebHistory(),
+
   routes
 })
+
+/*
+|--------------------------------------------------------------------------
+| GLOBAL ROUTE GUARD
+|--------------------------------------------------------------------------
+*/
+
+router.beforeEach((to, from, next) => {
+
+  const eventContextStore =
+    useEventContextStore()
+
+  /*
+  --------------------------------------------------------------------------
+  CHECK IF ROUTE REQUIRES EVENT CONTEXT
+  --------------------------------------------------------------------------
+  */
+
+  if (
+
+    to.meta.requiresEvent
+
+    &&
+
+    !eventContextStore.hasSelectedEvent
+
+  ) {
+
+    return next('/events')
+  }
+
+  next()
+})
+
+/*
+|--------------------------------------------------------------------------
+| EXPORT ROUTER
+|--------------------------------------------------------------------------
+*/
 
 export default router

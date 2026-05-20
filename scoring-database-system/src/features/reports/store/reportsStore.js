@@ -1,90 +1,112 @@
-import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
+
+import { ref } from 'vue'
 
 import {
 
-  fetchReports,
+  getEventRankings
 
-  fetchEvents
+} from '../services/reportService'
 
-} from '../services/reportsService'
+import {
 
+  useEventContextStore
 
-const reports = ref([])
-
-const events = ref([])
-
-const loading = ref(false)
-
-const error = ref(null)
+} from '@/features/events/store/eventContextStore'
 
 
-const totalReports = computed(() => {
-  return reports.value.length
-})
+export const useReportStore = defineStore(
 
-const winners = computed(() => {
+  'reportStore',
 
-  return reports.value.filter(
-    report => report.isWinner
-  ).length
-})
+  () => {
 
+    /*
+    --------------------------------------------------------------------------
+    STATE
+    --------------------------------------------------------------------------
+    */
 
-const loadReports = async () => {
+    const rankings = ref([])
 
-  loading.value = true
+    const loading = ref(false)
 
-  try {
+    const error = ref(null)
 
-    reports.value =
-      await fetchReports()
+    /*
+    --------------------------------------------------------------------------
+    EVENT CONTEXT
+    --------------------------------------------------------------------------
+    */
 
-  } catch (err) {
+    const eventContextStore =
+      useEventContextStore()
 
-    console.error(err)
+    /*
+    --------------------------------------------------------------------------
+    LOAD REPORTS
+    --------------------------------------------------------------------------
+    */
 
-    error.value =
-      err.message || 'Failed to load reports.'
+    const loadRankings =
+      async () => {
 
-  } finally {
+        if (
+          !eventContextStore.currentEventId
+        ) {
+          return
+        }
 
-    loading.value = false
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          const response =
+            await getEventRankings(
+
+              eventContextStore.currentEventId
+            )
+
+          rankings.value =
+            response.data || []
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+            err.message ||
+            'Failed to load rankings.'
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    return {
+
+      /*
+      ------------------------------------------------------------------------
+      STATE
+      ------------------------------------------------------------------------
+      */
+
+      rankings,
+
+      loading,
+
+      error,
+
+      /*
+      ------------------------------------------------------------------------
+      METHODS
+      ------------------------------------------------------------------------
+      */
+
+      loadRankings
+    }
   }
-}
-
-
-const loadEvents = async () => {
-
-  try {
-
-    events.value =
-      await fetchEvents()
-
-  } catch (err) {
-
-    console.error(err)
-  }
-}
-
-
-export function useReportsStore() {
-
-  return {
-
-    reports,
-
-    events,
-
-    loading,
-
-    error,
-
-    totalReports,
-
-    winners,
-
-    loadReports,
-
-    loadEvents
-  }
-}
+)

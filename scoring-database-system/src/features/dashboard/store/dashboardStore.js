@@ -1,11 +1,13 @@
 import { computed, ref } from 'vue'
 
 import {
-  fetchDashboardSummary
+  fetchDashboardSummaryByEvent
 } from '../services/dashboardService'
 
+import {
+  useEventContextStore
+} from '@/features/events/store/eventContextStore'
 
-const events = ref([])
 
 const sports = ref([])
 
@@ -18,9 +20,31 @@ const loading = ref(false)
 const error = ref(null)
 
 
-const totalEvents = computed(() => {
-  return events.value.length
-})
+/*
+|--------------------------------------------------------------------------
+| EVENT CONTEXT
+|--------------------------------------------------------------------------
+*/
+
+const eventContextStore =
+  useEventContextStore()
+
+
+/*
+|--------------------------------------------------------------------------
+| COMPUTED
+|--------------------------------------------------------------------------
+*/
+
+const currentEvent =
+  computed(() =>
+    eventContextStore.currentEvent
+  )
+
+const currentEventId =
+  computed(() =>
+    eventContextStore.currentEventId
+  )
 
 const totalSports = computed(() => {
   return sports.value.length
@@ -47,7 +71,17 @@ const recentWinners = computed(() => {
 })
 
 
+/*
+|--------------------------------------------------------------------------
+| LOAD DASHBOARD
+|--------------------------------------------------------------------------
+*/
+
 const loadDashboard = async () => {
+
+  if (!currentEventId.value) {
+    return
+  }
 
   loading.value = true
 
@@ -56,22 +90,23 @@ const loadDashboard = async () => {
   try {
 
     const data =
-      await fetchDashboardSummary()
+      await fetchDashboardSummaryByEvent(
+        currentEventId.value
+      )
 
-    events.value = data.events
+    sports.value = data.sports || []
 
-    sports.value = data.sports
+    games.value = data.games || []
 
-    games.value = data.games
-
-    scores.value = data.scores
+    scores.value = data.scores || []
 
   } catch (err) {
 
     console.error(err)
 
     error.value =
-      err.message || 'Failed to load dashboard.'
+      err.message ||
+      'Failed to load dashboard.'
 
   } finally {
 
@@ -84,7 +119,21 @@ export function useDashboardStore() {
 
   return {
 
-    events,
+    /*
+    ------------------------------------------------------------------------
+    EVENT
+    ------------------------------------------------------------------------
+    */
+
+    currentEvent,
+
+    currentEventId,
+
+    /*
+    ------------------------------------------------------------------------
+    STATE
+    ------------------------------------------------------------------------
+    */
 
     sports,
 
@@ -96,7 +145,11 @@ export function useDashboardStore() {
 
     error,
 
-    totalEvents,
+    /*
+    ------------------------------------------------------------------------
+    COMPUTED
+    ------------------------------------------------------------------------
+    */
 
     totalSports,
 
@@ -107,6 +160,12 @@ export function useDashboardStore() {
     recentGames,
 
     recentWinners,
+
+    /*
+    ------------------------------------------------------------------------
+    METHODS
+    ------------------------------------------------------------------------
+    */
 
     loadDashboard
   }
