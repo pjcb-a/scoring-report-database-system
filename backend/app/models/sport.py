@@ -25,7 +25,8 @@ class Sport(db.Model):
     scoring_type_id = db.Column(
         db.Integer,
         db.ForeignKey(
-            'scoring_types.scoring_type_id'
+            'scoring_types.scoring_type_id',
+            ondelete='RESTRICT'
         ),
         nullable=False
     )

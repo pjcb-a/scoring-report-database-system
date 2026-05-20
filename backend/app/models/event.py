@@ -52,10 +52,14 @@ class Event(db.Model):
             self.event_name,
 
             'start_day':
-            str(self.start_day),
+            self.start_day.isoformat()
+            if self.start_day
+            else None,
 
             'end_day':
-            str(self.end_day),
+            self.end_day.isoformat()
+            if self.end_day
+            else None,
 
             'status':
             self.status

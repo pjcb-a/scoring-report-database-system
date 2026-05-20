@@ -1,442 +1,250 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint
 
 from app.extensions import db
-
-from app.models.game_score import GameScore
 from app.models.game import Game
+from app.models.game_score import GameScore
 from app.models.team import Team
-
-
-game_score_bp = Blueprint(
-    "game_score_bp",
-    __name__
+from app.routes.utils import (
+    error_response,
+    missing_fields,
+    parse_bool,
+    parse_float,
+    parse_int,
+    request_data,
+    success_response
 )
 
 
-"""
-------------------------------------------------------------------------------
-GET ALL GAME SCORES
-------------------------------------------------------------------------------
-"""
+game_score_bp = Blueprint("game_score_bp", __name__)
 
-@game_score_bp.route(
-    "/api/game-scores",
-    methods=["GET"]
-)
+
+@game_score_bp.route("/api/game-scores", methods=["GET"])
 def get_game_scores():
+    scores = GameScore.query.order_by(GameScore.game_score_id.desc()).all()
 
-    try:
-
-        scores = GameScore.query.all()
-
-        result = []
-
-        for score in scores:
-
-            result.append({
-
-                "game_score_id":
-                score.game_score_id,
-
-                "game_id":
-                score.game_id,
-
-                "team_id":
-                score.team_id,
-
-                "team":
-                score.team.team_name,
-
-                "score_value":
-                score.score_value,
-
-                "rank_position":
-                score.rank_position,
-
-                "isWinner":
-                score.isWinner
-            })
-
-        return jsonify(result), 200
-
-    except Exception as error:
-
-        return jsonify({
-            "message":
-            "Failed to fetch game scores.",
-
-            "error":
-            str(error)
-        }), 500
+    return success_response(
+        [score.to_dict() for score in scores],
+        "Game scores fetched successfully."
+    )
 
 
-"""
-------------------------------------------------------------------------------
-GET SINGLE GAME SCORE
-------------------------------------------------------------------------------
-"""
-
-@game_score_bp.route(
-    "/api/game-scores/<int:game_score_id>",
-    methods=["GET"]
-)
+@game_score_bp.route("/api/game-scores/<int:game_score_id>", methods=["GET"])
 def get_game_score(game_score_id):
+    score = GameScore.query.get(game_score_id)
 
-    try:
+    if not score:
+        return error_response("Game score not found.", 404)
 
-        score = GameScore.query.get_or_404(
-            game_score_id
-        )
-
-        return jsonify({
-
-            "game_score_id":
-            score.game_score_id,
-
-            "game_id":
-            score.game_id,
-
-            "team_id":
-            score.team_id,
-
-            "team":
-            score.team.team_name,
-
-            "score_value":
-            score.score_value,
-
-            "rank_position":
-            score.rank_position,
-
-            "isWinner":
-            score.isWinner
-
-        }), 200
-
-    except Exception as error:
-
-        return jsonify({
-            "message":
-            "Failed to fetch game score.",
-
-            "error":
-            str(error)
-        }), 500
+    return success_response(
+        score.to_dict(),
+        "Game score fetched successfully."
+    )
 
 
-"""
-------------------------------------------------------------------------------
-GET ALL SCORES OF A GAME
-------------------------------------------------------------------------------
-"""
-
-@game_score_bp.route(
-    "/api/games/<int:game_id>/scores",
-    methods=["GET"]
-)
+@game_score_bp.route("/api/games/<int:game_id>/scores", methods=["GET"])
 def get_scores_by_game(game_id):
+    game = Game.query.get(game_id)
 
-    try:
+    if not game:
+        return error_response("Game not found.", 404)
 
-        game = Game.query.get_or_404(game_id)
+    scores = GameScore.query.filter_by(game_id=game_id).all()
 
-        scores = GameScore.query.filter_by(
-            game_id=game.game_id
-        ).all()
-
-        result = []
-
-        for score in scores:
-
-            result.append({
-
-                "game_score_id":
-                score.game_score_id,
-
-                "team_id":
-                score.team_id,
-
-                "team":
-                score.team.team_name,
-
-                "score_value":
-                score.score_value,
-
-                "rank_position":
-                score.rank_position,
-
-                "isWinner":
-                score.isWinner
-            })
-
-        return jsonify(result), 200
-
-    except Exception as error:
-
-        return jsonify({
-            "message":
-            "Failed to fetch scores for game.",
-
-            "error":
-            str(error)
-        }), 500
+    return success_response(
+        [score.to_dict() for score in scores],
+        "Game scores fetched successfully."
+    )
 
 
-"""
-------------------------------------------------------------------------------
-CREATE GAME SCORE
-------------------------------------------------------------------------------
-"""
-
-@game_score_bp.route(
-    "/api/game-scores",
-    methods=["POST"]
-)
+@game_score_bp.route("/api/game-scores", methods=["POST"])
 def create_game_score():
+    data = request_data()
+    missing = missing_fields(data, ["game_id", "team_id", "score_value"])
 
-    try:
+    if missing:
+        return error_response("Required fields are missing.", 400, missing)
 
-        data = request.get_json()
+    game_id, game_error = parse_int(data["game_id"], "game_id")
+    team_id, team_error = parse_int(data["team_id"], "team_id")
+    score_value, score_error = parse_float(
+        data["score_value"],
+        "score_value"
+    )
+    errors = [
+        error
+        for error in [game_error, team_error, score_error]
+        if error
+    ]
 
-        """
-        ----------------------------------------------------------------------
-        REQUIRED FIELD VALIDATION
-        ----------------------------------------------------------------------
-        """
-
-        required_fields = [
-            "game_id",
-            "team_id",
-            "score_value"
-        ]
-
-        for field in required_fields:
-
-            if field not in data:
-
-                return jsonify({
-                    "message":
-                    f"{field} is required."
-                }), 400
-
-        """
-        ----------------------------------------------------------------------
-        VERIFY GAME EXISTS
-        ----------------------------------------------------------------------
-        """
-
-        game = Game.query.get(
-            data["game_id"]
+    if "rank_position" in data and data.get("rank_position") not in [None, ""]:
+        rank_position, rank_error = parse_int(
+            data["rank_position"],
+            "rank_position"
         )
 
-        if not game:
+        if rank_error:
+            errors.append(rank_error)
+    else:
+        rank_position = None
 
-            return jsonify({
-                "message":
-                "Game not found."
-            }), 404
+    if errors:
+        return error_response("Invalid game score data.", 400, errors)
 
-        """
-        ----------------------------------------------------------------------
-        VERIFY TEAM EXISTS
-        ----------------------------------------------------------------------
-        """
+    if score_value < 0:
+        return error_response("score_value cannot be negative.", 400)
 
-        team = Team.query.get(
-            data["team_id"]
+    if rank_position is not None and rank_position <= 0:
+        return error_response("rank_position must be greater than zero.", 400)
+
+    if not Game.query.get(game_id):
+        return error_response("Game not found.", 404)
+
+    if not Team.query.get(team_id):
+        return error_response("Team not found.", 404)
+
+    existing_score = GameScore.query.filter_by(
+        game_id=game_id,
+        team_id=team_id
+    ).first()
+
+    if existing_score:
+        return error_response(
+            "This team already has a score for this game.",
+            409
         )
 
-        if not team:
+    game_score = GameScore(
+        game_id=game_id,
+        team_id=team_id,
+        score_value=score_value,
+        rank_position=rank_position,
+        isWinner=parse_bool(data.get("isWinner", False))
+    )
 
-            return jsonify({
-                "message":
-                "Team not found."
-            }), 404
+    db.session.add(game_score)
+    db.session.commit()
 
-        """
-        ----------------------------------------------------------------------
-        PREVENT DUPLICATE TEAM SCORE
-        ----------------------------------------------------------------------
-        """
+    return success_response(
+        game_score.to_dict(),
+        "Game score created successfully.",
+        201
+    )
 
-        existing_score = GameScore.query.filter_by(
-            game_id=data["game_id"],
-            team_id=data["team_id"]
+
+@game_score_bp.route("/api/game-scores/<int:game_score_id>", methods=["PUT"])
+def update_game_score(game_score_id):
+    game_score = GameScore.query.get(game_score_id)
+
+    if not game_score:
+        return error_response("Game score not found.", 404)
+
+    data = request_data()
+
+    if "game_id" in data or "team_id" in data:
+        game_id = game_score.game_id
+        team_id = game_score.team_id
+
+        if "game_id" in data:
+            game_id, error = parse_int(data["game_id"], "game_id")
+
+            if error:
+                return error_response(
+                    "Invalid game score data.",
+                    400,
+                    [error]
+                )
+
+            if not Game.query.get(game_id):
+                return error_response("Game not found.", 404)
+
+        if "team_id" in data:
+            team_id, error = parse_int(data["team_id"], "team_id")
+
+            if error:
+                return error_response(
+                    "Invalid game score data.",
+                    400,
+                    [error]
+                )
+
+            if not Team.query.get(team_id):
+                return error_response("Team not found.", 404)
+
+        existing_score = GameScore.query.filter(
+            GameScore.game_id == game_id,
+            GameScore.team_id == team_id,
+            GameScore.game_score_id != game_score_id
         ).first()
 
         if existing_score:
-
-            return jsonify({
-                "message":
-                "This team already has a score "
-                "for this game."
-            }), 400
-
-        """
-        ----------------------------------------------------------------------
-        CREATE GAME SCORE
-        ----------------------------------------------------------------------
-        """
-
-        game_score = GameScore(
-
-            game_id=data["game_id"],
-
-            team_id=data["team_id"],
-
-            score_value=data["score_value"],
-
-            rank_position=data.get(
-                "rank_position"
-            ),
-
-            isWinner=data.get(
-                "isWinner",
-                False
+            return error_response(
+                "This team already has a score for this game.",
+                409
             )
-        )
 
-        db.session.add(game_score)
+        game_score.game_id = game_id
+        game_score.team_id = team_id
 
-        db.session.commit()
+    if "score_value" in data:
+        score_value, error = parse_float(data["score_value"], "score_value")
 
-        return jsonify({
+        if error:
+            return error_response("Invalid game score data.", 400, [error])
 
-            "message":
-            "Game score created successfully.",
+        if score_value < 0:
+            return error_response("score_value cannot be negative.", 400)
 
-            "data": {
+        game_score.score_value = score_value
 
-                "game_score_id":
-                game_score.game_score_id,
+    if "rank_position" in data:
+        if data.get("rank_position") in [None, ""]:
+            game_score.rank_position = None
+        else:
+            rank_position, error = parse_int(
+                data["rank_position"],
+                "rank_position"
+            )
 
-                "game_id":
-                game_score.game_id,
+            if error:
+                return error_response(
+                    "Invalid game score data.",
+                    400,
+                    [error]
+                )
 
-                "team_id":
-                game_score.team_id,
+            if rank_position <= 0:
+                return error_response(
+                    "rank_position must be greater than zero.",
+                    400
+                )
 
-                "score_value":
-                game_score.score_value,
+            game_score.rank_position = rank_position
 
-                "rank_position":
-                game_score.rank_position,
+    if "isWinner" in data:
+        game_score.isWinner = parse_bool(data["isWinner"])
 
-                "isWinner":
-                game_score.isWinner
-            }
+    db.session.commit()
 
-        }), 201
+    return success_response(
+        game_score.to_dict(),
+        "Game score updated successfully."
+    )
 
-    except Exception as error:
-
-        db.session.rollback()
-
-        return jsonify({
-            "message":
-            "Failed to create game score.",
-
-            "error":
-            str(error)
-        }), 500
-
-
-"""
-------------------------------------------------------------------------------
-UPDATE GAME SCORE
-------------------------------------------------------------------------------
-"""
-
-@game_score_bp.route(
-    "/api/game-scores/<int:game_score_id>",
-    methods=["PUT"]
-)
-def update_game_score(game_score_id):
-
-    try:
-
-        game_score = GameScore.query.get_or_404(
-            game_score_id
-        )
-
-        data = request.get_json()
-
-        """
-        ----------------------------------------------------------------------
-        UPDATE FIELDS
-        ----------------------------------------------------------------------
-        """
-
-        game_score.score_value = data.get(
-            "score_value",
-            game_score.score_value
-        )
-
-        game_score.rank_position = data.get(
-            "rank_position",
-            game_score.rank_position
-        )
-
-        game_score.isWinner = data.get(
-            "isWinner",
-            game_score.isWinner
-        )
-
-        db.session.commit()
-
-        return jsonify({
-            "message":
-            "Game score updated successfully."
-        }), 200
-
-    except Exception as error:
-
-        db.session.rollback()
-
-        return jsonify({
-            "message":
-            "Failed to update game score.",
-
-            "error":
-            str(error)
-        }), 500
-
-
-"""
-------------------------------------------------------------------------------
-DELETE GAME SCORE
-------------------------------------------------------------------------------
-"""
 
 @game_score_bp.route(
     "/api/game-scores/<int:game_score_id>",
     methods=["DELETE"]
 )
 def delete_game_score(game_score_id):
+    game_score = GameScore.query.get(game_score_id)
 
-    try:
+    if not game_score:
+        return error_response("Game score not found.", 404)
 
-        game_score = GameScore.query.get_or_404(
-            game_score_id
-        )
+    db.session.delete(game_score)
+    db.session.commit()
 
-        db.session.delete(game_score)
-
-        db.session.commit()
-
-        return jsonify({
-            "message":
-            "Game score deleted successfully."
-        }), 200
-
-    except Exception as error:
-
-        db.session.rollback()
-
-        return jsonify({
-            "message":
-            "Failed to delete game score.",
-
-            "error":
-            str(error)
-        }), 500
+    return success_response(
+        {"game_score_id": game_score_id},
+        "Game score deleted successfully."
+    )

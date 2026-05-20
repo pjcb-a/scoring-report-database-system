@@ -25,7 +25,8 @@ class Game(db.Model):
     event_sport_id = db.Column(
         db.Integer,
         db.ForeignKey(
-            "event_sports.event_sport_id"
+            "event_sports.event_sport_id",
+            ondelete="CASCADE"
         ),
         nullable=False
     )
@@ -88,17 +89,41 @@ class Game(db.Model):
             "game_id":
             self.game_id,
 
+            "event_sport_id":
+            self.event_sport_id,
+
+            "event_id":
+            self.event_sport.event_id,
+
+            "sport_id":
+            self.event_sport.sport_id,
+
             "event":
             self.event_sport.event.event_name,
 
             "sport":
             self.event_sport.sport.sport_name,
 
+            "sport_name":
+            self.event_sport.sport.sport_name,
+
+            "scoring_type_id":
+            self.event_sport.sport.scoring_type_id,
+
+            "scoring_type":
+            self.event_sport.sport.scoring_type.type
+            if self.event_sport.sport.scoring_type
+            else None,
+
             "start_date":
-            self.start_date,
+            self.start_date.isoformat()
+            if self.start_date
+            else None,
 
             "end_date":
-            self.end_date,
+            self.end_date.isoformat()
+            if self.end_date
+            else None,
 
             "venue_name":
             self.venue_name,

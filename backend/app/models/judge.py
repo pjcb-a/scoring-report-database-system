@@ -24,7 +24,8 @@ class Judge(db.Model):
 
     judge_name = db.Column(
         db.String(150),
-        nullable=False
+        nullable=False,
+        unique=True
     )
 
     """

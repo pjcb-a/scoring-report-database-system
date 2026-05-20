@@ -1,5 +1,6 @@
 from .event_routes import event_bp
 from .sport_routes import sport_bp
+from .scoring_type_routes import scoring_type_bp
 from .team_routes import team_bp
 from .game_routes import game_bp
 from .game_score_routes import game_score_bp

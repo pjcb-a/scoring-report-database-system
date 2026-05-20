@@ -60,3 +60,12 @@ def seed_scoring_types():
     print(
         'Scoring types seeded successfully.'
     )
+
+
+if __name__ == "__main__":
+    from app import create_app
+
+    app = create_app()
+
+    with app.app_context():
+        seed_scoring_types()
