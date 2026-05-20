@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import re
 
 from flask import jsonify, request
 
@@ -90,3 +91,12 @@ def parse_datetime(value, field_name):
         return datetime.fromisoformat(normalized), None
     except (TypeError, ValueError):
         return None, f"{field_name} must be a valid datetime."
+
+
+def validate_hex_color(value):
+    if not value or not isinstance(value, str):
+        return False
+    # Matches hex color codes like #FFF, #FFFF, #FFFFFF, or #FFFFFFFF
+    pattern = r"^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"
+    return bool(re.match(pattern, value.strip()))
+

@@ -8,7 +8,7 @@
     <div class="sidebar-header">
 
       <h1 class="sidebar-logo">
-        ADNL
+        SRDS
       </h1>
 
       <p class="sidebar-subtitle">
