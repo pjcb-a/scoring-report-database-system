@@ -9,7 +9,8 @@ from app.routes.utils import (
     error_response,
     missing_fields,
     request_data,
-    success_response
+    success_response,
+    validate_hex_color
 )
 
 
@@ -50,6 +51,10 @@ def create_team():
     team_name = clean_string(data["team_name"])
     team_color = clean_string(data["team_color"])
 
+    if not validate_hex_color(team_color):
+        return error_response("Team color must be a valid hex color code (e.g. #FF5733).", 400)
+
+
     existing = Team.query.filter(
         func.lower(Team.team_name) == team_name.lower()
     ).first()
@@ -82,7 +87,7 @@ def update_team(team_id):
         team_name = clean_string(data["team_name"])
 
         if not team_name:
-            return error_response("team_name is required.", 400)
+            return error_response("Team name is required.", 400)
 
         existing = Team.query.filter(
             func.lower(Team.team_name) == team_name.lower(),
@@ -98,7 +103,10 @@ def update_team(team_id):
         team_color = clean_string(data["team_color"])
 
         if not team_color:
-            return error_response("team_color is required.", 400)
+            return error_response("Team color is required.", 400)
+
+        if not validate_hex_color(team_color):
+            return error_response("Team color must be a valid hex color code (e.g. #FF5733).", 400)
 
         team.team_color = team_color
 
