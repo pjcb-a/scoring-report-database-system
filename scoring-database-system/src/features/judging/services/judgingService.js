@@ -1,4 +1,4 @@
-import api from '@/services/api'
+import api, { unwrapData } from '@/services/api'
 
 
 /*
@@ -13,7 +13,7 @@ export const fetchJudgeScores = async () => {
     '/score-components'
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -32,7 +32,7 @@ export const createJudgeScore = async (
     payload
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -52,7 +52,7 @@ export const updateJudgeScore = async (
     payload
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -70,7 +70,7 @@ export const deleteJudgeScore = async (
     `/score-components/${scoreComponentId}`
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -86,7 +86,7 @@ export const fetchGameScores = async () => {
     '/game-scores'
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -102,7 +102,7 @@ export const fetchCriteria = async () => {
     '/criteria'
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -118,5 +118,5 @@ export const fetchJudges = async () => {
     '/judges'
   )
 
-  return response.data
+  return unwrapData(response)
 }

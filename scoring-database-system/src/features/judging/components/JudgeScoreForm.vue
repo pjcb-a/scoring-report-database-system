@@ -1,5 +1,8 @@
 <script setup>
-import { reactive } from 'vue'
+import {
+  computed,
+  reactive
+} from 'vue'
 
 import Input from '@/components/ui/Input.vue'
 import PrimaryButton from '@/components/ui/PrimaryButton.vue'
@@ -28,10 +31,38 @@ const form = reactive({
   score_value: ''
 })
 
+const selectedGameScore = computed(() => {
+  return props.gameScores.find(
+    score => Number(score.game_score_id) === Number(form.game_score_id)
+  )
+})
+
+const filteredCriteria = computed(() => {
+  if (!selectedGameScore.value?.sport) {
+    return props.criteria
+  }
+
+  return props.criteria.filter(
+    criterion => criterion.sport === selectedGameScore.value.sport
+  )
+})
+
 const submitForm = () => {
+  if (
+    !form.game_score_id ||
+    !form.criteria_id ||
+    !form.judge_id ||
+    form.score_value === '' ||
+    Number(form.score_value) < 0
+  ) {
+    return
+  }
 
   emit('submit', {
-    ...form
+    game_score_id: Number(form.game_score_id),
+    criteria_id: Number(form.criteria_id),
+    judge_id: Number(form.judge_id),
+    score_value: Number(form.score_value)
   })
 
   form.game_score_id = ''
@@ -75,6 +106,10 @@ const submitForm = () => {
           :value="score.game_score_id"
         >
           {{ score.team }}
+          -
+          {{ score.event }}
+          -
+          {{ score.sport }}
         </option>
 
       </select>
@@ -100,7 +135,7 @@ const submitForm = () => {
         </option>
 
         <option
-          v-for="criterion in criteria"
+          v-for="criterion in filteredCriteria"
           :key="criterion.criteria_id"
           :value="criterion.criteria_id"
         >
@@ -145,6 +180,7 @@ const submitForm = () => {
       v-model="form.score_value"
       label="Judge Score"
       type="number"
+      min="0"
       placeholder="Enter score"
     />
 

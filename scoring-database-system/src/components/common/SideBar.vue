@@ -1,3 +1,6 @@
+<script setup>
+</script>
+
 <template>
 
   <aside class="sidebar">
@@ -38,10 +41,31 @@
       </router-link>
 
       <router-link
+        to="/teams"
+        class="sidebar-link"
+      >
+        Teams
+      </router-link>
+
+      <router-link
         to="/games"
         class="sidebar-link"
       >
         Games
+      </router-link>
+
+      <router-link
+        to="/scoring"
+        class="sidebar-link"
+      >
+        Scoring
+      </router-link>
+
+      <router-link
+        to="/judging"
+        class="sidebar-link"
+      >
+        Judging
       </router-link>
 
       <router-link

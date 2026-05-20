@@ -44,7 +44,7 @@ const loadReports = async () => {
     console.error(err)
 
     error.value =
-      'Failed to load reports.'
+      err.message || 'Failed to load reports.'
 
   } finally {
 

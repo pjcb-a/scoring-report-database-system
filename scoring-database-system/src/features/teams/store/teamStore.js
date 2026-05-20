@@ -41,7 +41,7 @@ const loadTeams = async () => {
     console.error(err)
 
     error.value =
-      'Failed to load teams.'
+      err.message || 'Failed to load teams.'
 
   } finally {
 
@@ -65,7 +65,7 @@ const addTeam = async (
     console.error(err)
 
     error.value =
-      'Failed to create team.'
+      err.message || 'Failed to create team.'
   }
 }
 
@@ -89,7 +89,7 @@ const editTeam = async (
     console.error(err)
 
     error.value =
-      'Failed to update team.'
+      err.message || 'Failed to update team.'
   }
 }
 
@@ -109,7 +109,7 @@ const removeTeam = async (
     console.error(err)
 
     error.value =
-      'Failed to delete team.'
+      err.message || 'Failed to delete team.'
   }
 }
 

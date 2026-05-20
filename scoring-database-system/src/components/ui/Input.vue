@@ -2,7 +2,7 @@
 defineProps({
   label: String,
 
-  modelValue: String,
+  modelValue: [String, Number],
 
   placeholder: String,
 
@@ -31,6 +31,7 @@ defineEmits(['update:modelValue'])
       :placeholder="placeholder"
       :value="modelValue"
       class="base-input"
+      v-bind="$attrs"
       @input="$emit('update:modelValue', $event.target.value)"
     />
 

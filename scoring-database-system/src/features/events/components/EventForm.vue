@@ -20,6 +20,14 @@ const form = reactive({
 })
 
 const submitForm = () => {
+  if (
+    !form.event_name.trim() ||
+    !form.start_day ||
+    !form.end_day ||
+    !form.status
+  ) {
+    return
+  }
 
   emit('submit', {
     ...form

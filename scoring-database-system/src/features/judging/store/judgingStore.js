@@ -44,6 +44,7 @@ const totalJudges = computed(() => {
 const loadJudgeScores = async () => {
 
   loading.value = true
+  error.value = null
 
   try {
 
@@ -55,7 +56,7 @@ const loadJudgeScores = async () => {
     console.error(err)
 
     error.value =
-      'Failed to load judge scores.'
+      err.message || 'Failed to load judge scores.'
 
   } finally {
 
@@ -74,6 +75,8 @@ const loadGameScores = async () => {
   } catch (err) {
 
     console.error(err)
+    error.value =
+      err.message || 'Failed to load game scores.'
   }
 }
 
@@ -88,6 +91,8 @@ const loadCriteria = async () => {
   } catch (err) {
 
     console.error(err)
+    error.value =
+      err.message || 'Failed to load criteria.'
   }
 }
 
@@ -102,6 +107,8 @@ const loadJudges = async () => {
   } catch (err) {
 
     console.error(err)
+    error.value =
+      err.message || 'Failed to load judges.'
   }
 }
 
@@ -119,6 +126,8 @@ const addJudgeScore = async (
   } catch (err) {
 
     console.error(err)
+    error.value =
+      err.message || 'Failed to create judge score.'
   }
 }
 
@@ -140,6 +149,8 @@ const editJudgeScore = async (
   } catch (err) {
 
     console.error(err)
+    error.value =
+      err.message || 'Failed to update judge score.'
   }
 }
 
@@ -159,6 +170,8 @@ const removeJudgeScore = async (
   } catch (err) {
 
     console.error(err)
+    error.value =
+      err.message || 'Failed to delete judge score.'
   }
 }
 

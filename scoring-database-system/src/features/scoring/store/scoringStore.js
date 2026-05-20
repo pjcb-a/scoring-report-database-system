@@ -56,7 +56,7 @@ const loadScores = async () => {
     console.error(err)
 
     error.value =
-      'Failed to load scores.'
+      err.message || 'Failed to load scores.'
 
   } finally {
 
@@ -108,7 +108,7 @@ const addScore = async (
     console.error(err)
 
     error.value =
-      'Failed to create score.'
+      err.message || 'Failed to create score.'
   }
 }
 
@@ -132,7 +132,7 @@ const editScore = async (
     console.error(err)
 
     error.value =
-      'Failed to update score.'
+      err.message || 'Failed to update score.'
   }
 }
 
@@ -152,7 +152,7 @@ const removeScore = async (
     console.error(err)
 
     error.value =
-      'Failed to delete score.'
+      err.message || 'Failed to delete score.'
   }
 }
 

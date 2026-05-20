@@ -1,4 +1,4 @@
-import api from '@/services/api'
+import api, { unwrapData } from '@/services/api'
 
 
 /*
@@ -13,7 +13,7 @@ export const fetchGames = async () => {
     '/games'
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -32,7 +32,7 @@ export const createGame = async (
     payload
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -52,7 +52,7 @@ export const updateGame = async (
     payload
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -70,7 +70,7 @@ export const deleteGame = async (
     `/games/${gameId}`
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -86,5 +86,5 @@ export const fetchEventSports = async () => {
     '/event-sports'
   )
 
-  return response.data
+  return unwrapData(response)
 }

@@ -1,4 +1,4 @@
-import api from '@/services/api'
+import api, { unwrapData } from '@/services/api'
 
 
 /*
@@ -13,7 +13,7 @@ export const fetchEvents = async () => {
     '/events'
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -31,7 +31,7 @@ export const fetchEvent = async (
     `/events/${eventId}`
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -50,7 +50,7 @@ export const createEvent = async (
     payload
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -70,7 +70,7 @@ export const updateEvent = async (
     payload
   )
 
-  return response.data
+  return unwrapData(response)
 }
 
 
@@ -88,5 +88,5 @@ export const deleteEvent = async (
     `/events/${eventId}`
   )
 
-  return response.data
+  return unwrapData(response)
 }

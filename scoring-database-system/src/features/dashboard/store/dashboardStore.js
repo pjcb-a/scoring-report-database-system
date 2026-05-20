@@ -71,7 +71,7 @@ const loadDashboard = async () => {
     console.error(err)
 
     error.value =
-      'Failed to load dashboard.'
+      err.message || 'Failed to load dashboard.'
 
   } finally {
 

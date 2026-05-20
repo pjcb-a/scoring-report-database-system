@@ -5,6 +5,8 @@ import EventPage from '@/features/events/pages/EventPage.vue'
 import SportPage from '@/features/sports/pages/SportPage.vue'
 import TeamPage from '@/features/teams/pages/TeamPage.vue'
 import GamePage from '@/features/games/pages/GamePage.vue'
+import ScoringPage from '@/features/scoring/pages/ScoringPage.vue'
+import JudgePage from '@/features/judging/pages/JudgePage.vue'
 import ReportsPage from '@/features/reports/pages/ReportsPage.vue'
 
 const routes = [
@@ -27,6 +29,14 @@ const routes = [
   {
     path: '/games',
     component: GamePage
+  },
+  {
+    path: '/scoring',
+    component: ScoringPage
+  },
+  {
+    path: '/judging',
+    component: JudgePage
   },
   {
     path: '/reports',

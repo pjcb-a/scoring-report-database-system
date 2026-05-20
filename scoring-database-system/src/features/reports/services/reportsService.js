@@ -1,4 +1,4 @@
-import api from '@/services/api'
+import api, { unwrapData } from '@/services/api'
 
 
 /*
@@ -10,10 +10,22 @@ import api from '@/services/api'
 export const fetchReports = async () => {
 
   const response = await api.get(
-    '/game-scores'
+    '/reports'
   )
 
-  return response.data
+  return unwrapData(response)
+}
+
+export const fetchParticipationReports = async () => {
+  const response = await api.get('/reports/participation')
+
+  return unwrapData(response)
+}
+
+export const fetchJudgingReports = async () => {
+  const response = await api.get('/reports/judging-summary')
+
+  return unwrapData(response)
 }
 
 
@@ -29,5 +41,5 @@ export const fetchEvents = async () => {
     '/events'
   )
 
-  return response.data
+  return unwrapData(response)
 }

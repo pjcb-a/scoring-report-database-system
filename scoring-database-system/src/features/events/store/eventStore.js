@@ -65,7 +65,7 @@ const loadEvents = async () => {
     console.error(err)
 
     error.value =
-      'Failed to load events.'
+      err.message || 'Failed to load events.'
 
   } finally {
 
@@ -89,7 +89,7 @@ const addEvent = async (
     console.error(err)
 
     error.value =
-      'Failed to create event.'
+      err.message || 'Failed to create event.'
   }
 }
 
@@ -113,7 +113,7 @@ const editEvent = async (
     console.error(err)
 
     error.value =
-      'Failed to update event.'
+      err.message || 'Failed to update event.'
   }
 }
 
@@ -133,7 +133,7 @@ const removeEvent = async (
     console.error(err)
 
     error.value =
-      'Failed to delete event.'
+      err.message || 'Failed to delete event.'
   }
 }
 

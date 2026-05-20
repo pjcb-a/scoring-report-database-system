@@ -16,6 +16,12 @@ const form = reactive({
 })
 
 const submitForm = () => {
+  if (
+    !form.team_name.trim() ||
+    !form.team_color.trim()
+  ) {
+    return
+  }
 
   emit('submit', {
     ...form

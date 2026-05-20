@@ -24,9 +24,16 @@ const form = reactive({
 })
 
 const submitForm = () => {
+  if (
+    !form.sport_name.trim() ||
+    !form.scoring_type_id
+  ) {
+    return
+  }
 
   emit('submit', {
-    ...form
+    sport_name: form.sport_name,
+    scoring_type_id: Number(form.scoring_type_id)
   })
 
   form.sport_name = ''

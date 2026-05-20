@@ -52,7 +52,11 @@ const getBadgeVariant = (status) => {
           </th>
 
           <th>
-            Game Date
+            Start Date
+          </th>
+
+          <th>
+            Venue
           </th>
 
           <th>
@@ -85,17 +89,21 @@ const getBadgeVariant = (status) => {
           </td>
 
           <td>
-            {{ formatDate(game.game_date) }}
+            {{ formatDate(game.start_date) }}
+          </td>
+
+          <td>
+            {{ game.venue_name || '-' }}
           </td>
 
           <td>
 
             <Badge
               :variant="
-                getBadgeVariant(game.status)
+                getBadgeVariant(game.game_status)
               "
             >
-              {{ game.status }}
+              {{ game.game_status }}
             </Badge>
 
           </td>

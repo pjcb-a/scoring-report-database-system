@@ -22,6 +22,12 @@ defineProps({
 
           <th>Team</th>
 
+          <th>Event</th>
+
+          <th>Sport</th>
+
+          <th>Round</th>
+
           <th>Score</th>
 
           <th>Rank</th>
@@ -41,6 +47,18 @@ defineProps({
 
           <td>
             {{ report.team }}
+          </td>
+
+          <td>
+            {{ report.event || '-' }}
+          </td>
+
+          <td>
+            {{ report.sport || '-' }}
+          </td>
+
+          <td>
+            {{ report.round || '-' }}
           </td>
 
           <td>

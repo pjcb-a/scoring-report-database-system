@@ -4,8 +4,11 @@ import { onMounted, ref } from 'vue'
 import Modal from '@/components/common/Modal.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
-import JudgingHeader from '../components/JudgeHeader.vue'
+import JudgingHeader from '../components/JudgingHeader.vue'
+import JudgingStats from '../components/JudgingStats.vue'
+import JudgeScoreTable from '../components/JudgeScoreTable.vue'
 import JudgeScoreForm from '../components/JudgeScoreForm.vue'
+import JudgeEmptyState from '../components/JudgeEmptyState.vue'
 
 import {
   useJudgingStore
@@ -24,6 +27,10 @@ const {
   judges,
 
   loading,
+
+  totalJudgeScores,
+
+  totalJudges,
 
   loadJudgeScores,
 
@@ -66,8 +73,22 @@ onMounted(async () => {
       @add="openModal = true"
     />
 
+    <JudgingStats
+      :total-judge-scores="totalJudgeScores"
+      :total-judges="totalJudges"
+    />
+
     <LoadingSpinner
       v-if="loading"
+    />
+
+    <JudgeScoreTable
+      v-else-if="judgeScores.length"
+      :judge-scores="judgeScores"
+    />
+
+    <JudgeEmptyState
+      v-else
     />
 
     <Modal

@@ -1,5 +1,8 @@
 <script setup>
-import { reactive } from 'vue'
+import {
+  computed,
+  reactive
+} from 'vue'
 
 import Input from '@/components/ui/Input.vue'
 import PrimaryButton from '@/components/ui/PrimaryButton.vue'
@@ -34,10 +37,60 @@ const form = reactive({
   isWinner: false
 })
 
+const selectedGame = computed(() => {
+  return props.games.find(
+    game => Number(game.game_id) === Number(form.game_id)
+  )
+})
+
+const scoringType = computed(() => {
+  return selectedGame.value?.scoring_type || ''
+})
+
+const showRank = computed(() => {
+  return [
+    'Ranked Timed',
+    'Threshold Incremental'
+  ].includes(scoringType.value)
+})
+
+const showWinner = computed(() => {
+  return scoringType.value !== 'Component Score'
+})
+
 const submitForm = () => {
+  if (
+    !form.game_id ||
+    !form.team_id ||
+    form.score_value === ''
+  ) {
+    return
+  }
+
+  if (
+    showRank.value &&
+    form.rank_position !== '' &&
+    Number(form.rank_position) <= 0
+  ) {
+    return
+  }
+
+  if (Number(form.score_value) < 0) {
+    return
+  }
 
   emit('submit', {
-    ...form
+    game_id: Number(form.game_id),
+    team_id: Number(form.team_id),
+    score_value: Number(form.score_value),
+    rank_position:
+      showRank.value && form.rank_position !== ''
+        ? Number(form.rank_position)
+        : null,
+    isWinner:
+      showWinner.value
+        ? form.isWinner
+        : false
   })
 
   form.game_id = ''
@@ -127,17 +180,23 @@ const submitForm = () => {
       v-model="form.score_value"
       label="Score Value"
       type="number"
+      min="0"
       placeholder="Enter score"
     />
 
     <Input
+      v-if="showRank"
       v-model="form.rank_position"
       label="Rank Position"
       type="number"
+      min="1"
       placeholder="Enter rank"
     />
 
-    <div class="checkbox-group">
+    <div
+      v-if="showWinner"
+      class="checkbox-group"
+    >
 
       <input
         id="winner"

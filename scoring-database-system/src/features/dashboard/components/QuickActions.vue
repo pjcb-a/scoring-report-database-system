@@ -48,6 +48,12 @@ const goTo = (path) => {
         Add Score
       </PrimaryButton>
 
+      <PrimaryButton
+        @click="goTo('/judging')"
+      >
+        Add Judge Score
+      </PrimaryButton>
+
     </div>
 
   </div>

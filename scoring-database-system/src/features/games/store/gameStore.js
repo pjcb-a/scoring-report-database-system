@@ -43,7 +43,7 @@ const totalGames = computed(() => {
 const activeGames = computed(() => {
 
   return games.value.filter(
-    game => game.status === 'Ongoing'
+    game => game.game_status === 'Ongoing'
   ).length
 })
 
@@ -70,7 +70,7 @@ const loadGames = async () => {
     console.error(err)
 
     error.value =
-      'Failed to load games.'
+      err.message || 'Failed to load games.'
 
   } finally {
 
@@ -108,7 +108,7 @@ const addGame = async (
     console.error(err)
 
     error.value =
-      'Failed to create game.'
+      err.message || 'Failed to create game.'
   }
 }
 
@@ -132,7 +132,7 @@ const editGame = async (
     console.error(err)
 
     error.value =
-      'Failed to update game.'
+      err.message || 'Failed to update game.'
   }
 }
 
@@ -152,7 +152,7 @@ const removeGame = async (
     console.error(err)
 
     error.value =
-      'Failed to delete game.'
+      err.message || 'Failed to delete game.'
   }
 }
 

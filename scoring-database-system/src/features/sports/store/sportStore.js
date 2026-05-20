@@ -72,7 +72,7 @@ const loadSports = async () => {
     console.error(err)
 
     error.value =
-      'Failed to load sports.'
+      err.message || 'Failed to load sports.'
 
   } finally {
 
@@ -110,7 +110,7 @@ const addSport = async (
     console.error(err)
 
     error.value =
-      'Failed to create sport.'
+      err.message || 'Failed to create sport.'
   }
 }
 
@@ -134,7 +134,7 @@ const editSport = async (
     console.error(err)
 
     error.value =
-      'Failed to update sport.'
+      err.message || 'Failed to update sport.'
   }
 }
 
@@ -154,7 +154,7 @@ const removeSport = async (
     console.error(err)
 
     error.value =
-      'Failed to delete sport.'
+      err.message || 'Failed to delete sport.'
   }
 }
 

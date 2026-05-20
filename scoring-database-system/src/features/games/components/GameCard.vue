@@ -32,14 +32,14 @@ defineProps({
 
       <Badge
         :variant="
-          game.status === 'Completed'
+          game.game_status === 'Completed'
             ? 'primary'
-            : game.status === 'Ongoing'
+            : game.game_status === 'Ongoing'
             ? 'success'
             : 'warning'
         "
       >
-        {{ game.status }}
+        {{ game.game_status }}
       </Badge>
 
     </div>

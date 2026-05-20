@@ -22,24 +22,44 @@ const form = reactive({
 
   round: '',
 
-  game_date: '',
+  venue_name: '',
 
-  status: 'Scheduled'
+  start_date: '',
+
+  end_date: '',
+
+  game_status: 'Scheduled'
 })
 
 const submitForm = () => {
+  if (
+    !form.event_sport_id ||
+    !form.start_date ||
+    !form.game_status
+  ) {
+    return
+  }
 
   emit('submit', {
-    ...form
+    event_sport_id: Number(form.event_sport_id),
+    round: form.round,
+    venue_name: form.venue_name,
+    start_date: form.start_date,
+    end_date: form.end_date || null,
+    game_status: form.game_status
   })
 
   form.event_sport_id = ''
 
   form.round = ''
 
-  form.game_date = ''
+  form.venue_name = ''
 
-  form.status = 'Scheduled'
+  form.start_date = ''
+
+  form.end_date = ''
+
+  form.game_status = 'Scheduled'
 }
 </script>
 
@@ -74,9 +94,9 @@ const submitForm = () => {
           :key="eventSport.event_sport_id"
           :value="eventSport.event_sport_id"
         >
-          {{ eventSport.event }}
+          {{ eventSport.event || eventSport.event_name }}
           -
-          {{ eventSport.sport }}
+          {{ eventSport.sport || eventSport.sport_name }}
         </option>
 
       </select>
@@ -90,9 +110,21 @@ const submitForm = () => {
     />
 
     <Input
-      v-model="form.game_date"
+      v-model="form.venue_name"
+      label="Venue"
+      placeholder="Enter game venue"
+    />
+
+    <Input
+      v-model="form.start_date"
       type="datetime-local"
-      label="Game Date"
+      label="Start Date"
+    />
+
+    <Input
+      v-model="form.end_date"
+      type="datetime-local"
+      label="End Date"
     />
 
     <div class="input-group">
@@ -102,7 +134,7 @@ const submitForm = () => {
       </label>
 
       <select
-        v-model="form.status"
+        v-model="form.game_status"
         class="base-input"
       >
 

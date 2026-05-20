@@ -1,4 +1,4 @@
-import api from '@/services/api'
+import api, { unwrapData } from '@/services/api'
 
 
 /*
@@ -32,12 +32,12 @@ export const fetchDashboardSummary = async () => {
 
   return {
 
-    events: events.data,
+    events: unwrapData(events),
 
-    sports: sports.data,
+    sports: unwrapData(sports),
 
-    games: games.data,
+    games: unwrapData(games),
 
-    scores: scores.data
+    scores: unwrapData(scores)
   }
 }

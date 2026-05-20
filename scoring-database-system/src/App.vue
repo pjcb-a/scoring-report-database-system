@@ -7,3 +7,6 @@
     <router-view />
   </DashboardLayout>
 </template>
+
+<style scoped>
+</style>
