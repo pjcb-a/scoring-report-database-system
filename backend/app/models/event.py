@@ -42,6 +42,12 @@ class Event(db.Model):
         cascade='all, delete-orphan'
     )
 
+    teams = db.relationship(
+         "Team",
+        back_populates="event",
+        cascade="all, delete-orphan"
+)
+
     def to_dict(self):
 
         return {
