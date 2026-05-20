@@ -14,9 +14,7 @@ defineProps({
 })
 
 const emit = defineEmits([
-
   'confirm',
-
   'cancel'
 ])
 
@@ -73,7 +71,7 @@ const emit = defineEmits([
   inset: 0;
 
   background-color:
-    rgba(0, 0, 0, 0.4);
+    rgba(0, 0, 0, 0.45);
 
   display: flex;
 
@@ -88,35 +86,36 @@ const emit = defineEmits([
 
   width: 420px;
 
-  background-color: var(--radius-lg);
+  background-color:
+    var(--white);
 
-  border-radius: 16px;
+  border-radius:
+    var(--radius-lg);
 
   padding: 28px;
 
   box-shadow:
-    0 20px 40px rgba(
-      0,
-      0,
-      0,
-      0.2
-    );
+    var(--shadow-md);
 }
 
 .dialog-title {
 
   font-size: 24px;
 
-  font-weight: 700;
+  font-weight: 800;
+
+  color:
+    var(--text-main);
 
   margin-bottom: 14px;
 }
 
 .dialog-message {
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .dialog-actions {
@@ -137,25 +136,39 @@ const emit = defineEmits([
 
   padding: 10px 18px;
 
-  border-radius: 10px;
+  border-radius:
+    var(--radius-md);
 
   cursor: pointer;
 
-  font-weight: 600;
+  font-weight: 700;
+
+  transition:
+    var(--transition-fast);
 }
 
 .cancel-button {
 
   background-color:
-    #e5e7eb;
+    var(--bg-gray-light);
+
+  color:
+    var(--text-main);
 }
 
 .confirm-button {
 
   background-color:
-    var(--adnu- );
+    var(--adnu-danger);
 
-  color: white;
+  color:
+    var(--white);
+}
+
+.confirm-button:hover {
+
+  background-color:
+    var(--adnu-danger-strong);
 }
 
 </style>
