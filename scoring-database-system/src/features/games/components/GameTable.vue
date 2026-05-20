@@ -44,7 +44,11 @@ const getBadgeVariant = (status) => {
         <tr>
 
           <th>
-            Event Sport
+            Event
+          </th>
+
+          <th>
+            Sport
           </th>
 
           <th>
@@ -52,11 +56,7 @@ const getBadgeVariant = (status) => {
           </th>
 
           <th>
-            Start Date
-          </th>
-
-          <th>
-            Venue
+            Schedule
           </th>
 
           <th>
@@ -75,13 +75,11 @@ const getBadgeVariant = (status) => {
         >
 
           <td>
-
             {{ game.event }}
+          </td>
 
-            -
-
+          <td>
             {{ game.sport }}
-
           </td>
 
           <td>
@@ -89,21 +87,19 @@ const getBadgeVariant = (status) => {
           </td>
 
           <td>
-            {{ formatDate(game.start_date) }}
-          </td>
-
-          <td>
-            {{ game.venue_name || '-' }}
+            {{ formatDate(game.game_date) }}
           </td>
 
           <td>
 
             <Badge
               :variant="
-                getBadgeVariant(game.game_status)
+                getBadgeVariant(
+                  game.status
+                )
               "
             >
-              {{ game.game_status }}
+              {{ game.status }}
             </Badge>
 
           </td>

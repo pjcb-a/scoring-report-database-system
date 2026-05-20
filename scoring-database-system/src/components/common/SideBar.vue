@@ -8,7 +8,7 @@
     <div class="sidebar-header">
 
       <h1 class="sidebar-logo">
-        BRRT
+        NIGGA
       </h1>
 
       <p class="sidebar-subtitle">

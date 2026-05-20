@@ -9,7 +9,7 @@
 
       <div class="empty-icon">
 
-        📊
+        <i class="fa-solid fa-chart-column"></i>
 
       </div>
 
@@ -56,7 +56,7 @@
 
 .empty-icon {
   font-size: 64px;
-
+  color: var(--adnu-blue-dark);
   margin-bottom: 20px;
 }
 
