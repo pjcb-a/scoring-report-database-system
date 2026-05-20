@@ -14,7 +14,7 @@
     <div class="navbar-right">
 
       <div class="badge-gold">
-        ADMIN
+        ADMINS
       </div>
 
     </div>

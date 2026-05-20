@@ -8,7 +8,7 @@
     <div class="sidebar-header">
 
       <h1 class="sidebar-logo">
-        NIGGA
+        ADNL
       </h1>
 
       <p class="sidebar-subtitle">
@@ -123,15 +123,16 @@
 
   transition: var(--transition-fast);
 
-  color: var(--text-main);
+  color: var(--white);
 }
 
 .sidebar-link:hover {
   background-color: var(--adnu-blue-light);
+  color: var(--text-main)
 }
 
 .sidebar-link.router-link-active {
-  background-color: var(--adnu-blue-dark);
-  color: var(--white);
+  background-color: var(--adnu-blue-light);
+  color: var(--text-main);
 }
 </style>
