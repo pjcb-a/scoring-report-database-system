@@ -88,7 +88,7 @@ const emit = defineEmits([
 
   width: 420px;
 
-  background-color: white;
+  background-color: var(--radius-lg);
 
   border-radius: 16px;
 

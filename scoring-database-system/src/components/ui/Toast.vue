@@ -17,14 +17,18 @@ defineProps({
 
 <template>
 
-  <div
-    class="toast"
-    :class="type"
-  >
+  <transition name="toast">
 
-    {{ message }}
+    <div
+      class="toast"
+      :class="type"
+    >
 
-  </div>
+      {{ message }}
+
+    </div>
+
+  </transition>
 
 </template>
 
@@ -36,34 +40,52 @@ defineProps({
 
   padding: 16px 20px;
 
-  border-radius: 12px;
+  border-radius:
+    var(--radius-lg);
 
   color: var(--white);
 
-  font-weight: 600;
+  font-weight: 700;
 
   box-shadow:
-    0 10px 25px rgba(
-      0,
-      0,
-      0,
-      0.15
-    );
+    var(--shadow-md);
+
+  transition:
+    var(--transition-fast);
 }
 
 .success {
 
-  background-color: var(--adnu-gold);
+  background-color:
+    var(--adnu-blue-dark);
 }
 
 .error {
 
-  background-color: var(--adnu-danger);
+  background-color:
+    var(--adnu-danger);
 }
 
 .warning {
 
-  background-color: var(--adnu-danger-strong);
+  background-color:
+    var(--adnu-danger-strong);
+}
+
+.toast-enter-active,
+.toast-leave-active {
+
+  transition:
+    all 0.25s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+
+  opacity: 0;
+
+  transform:
+    translateY(-10px);
 }
 
 </style>
