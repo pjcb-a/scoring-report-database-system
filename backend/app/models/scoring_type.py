@@ -69,7 +69,7 @@ class ScoringType(db.Model):
                 self.scoring_type_id,
 
             "scoring_name":
-                self.scoring_name,
+                self.type,
 
             "description":
                 self.description
@@ -85,5 +85,5 @@ class ScoringType(db.Model):
 
         return (
             f"<ScoringType "
-            f"{self.scoring_name}>"
+            f"{self.type}>"
         )

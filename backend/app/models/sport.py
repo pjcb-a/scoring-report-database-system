@@ -93,7 +93,7 @@ class Sport(db.Model):
                 self.scoring_type_id,
 
             "scoring_type":
-                self.scoring_type.scoring_name
+                self.scoring_type.type
                 if self.scoring_type
                 else None
         }

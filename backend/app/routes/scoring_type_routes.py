@@ -124,7 +124,7 @@ def create_scoring_type():
 
         existing_type = ScoringType.query.filter_by(
 
-            scoring_name=scoring_name
+            type=scoring_name
 
         ).first()
 
@@ -139,7 +139,7 @@ def create_scoring_type():
 
         scoring_type = ScoringType(
 
-            scoring_name=scoring_name
+            type=scoring_name
         )
 
         db.session.add(scoring_type)

@@ -1,4 +1,21 @@
-import api from '@/services/axios'
+import api from '@/services/api'
+
+
+/*
+|--------------------------------------------------------------------------
+| GET SCORING TYPES
+|--------------------------------------------------------------------------
+*/
+
+export const getScoringTypes =
+  async () => {
+
+    const response = await api.get(
+      '/scoring-types'
+    )
+
+    return response.data
+  }
 
 
 /*
@@ -18,7 +35,7 @@ export const getSports =
     )
 
     return response.data
-}
+  }
 
 
 /*

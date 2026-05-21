@@ -159,7 +159,7 @@ class EventSport(db.Model):
                 else None,
 
             "scoring_type":
-                self.sport.scoring_type.scoring_name
+                self.sport.scoring_type.type
                 if (
                     self.sport
                     and self.sport.scoring_type
