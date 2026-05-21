@@ -32,7 +32,7 @@ event_bp = Blueprint(
 
 @event_bp.route(
 
-    '/',
+    '/events',
 
     methods=['GET']
 )
@@ -134,7 +134,7 @@ def get_event(event_id):
 
 @event_bp.route(
 
-    '/',
+    '/events',
 
     methods=['POST']
 )
