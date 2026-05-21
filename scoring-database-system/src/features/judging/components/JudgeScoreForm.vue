@@ -1,25 +1,41 @@
 <script setup>
+
 import {
-  computed,
-  reactive
+  reactive,
+  ref
 } from 'vue'
 
-import Input from '@/components/ui/Input.vue'
-import PrimaryButton from '@/components/ui/PrimaryButton.vue'
+import {
+  useJudgingStore
+} from '../stores/judgingStore'
 
 const props = defineProps({
 
-  gameScores: Array,
+  gameScores: {
+    type: Array,
+    default: () => []
+  },
 
-  criteria: Array,
+  criteria: {
+    type: Array,
+    default: () => []
+  },
 
-  judges: Array
+  judges: {
+    type: Array,
+    default: () => []
+  }
 })
 
 const emit = defineEmits([
   'success',
   'close'
 ])
+
+const judgingStore =
+  useJudgingStore()
+
+const saving = ref(false)
 
 const form = reactive({
 
@@ -32,162 +48,166 @@ const form = reactive({
   score_value: ''
 })
 
-const selectedGameScore = computed(() => {
-  return props.gameScores.find(
-    score => Number(score.game_score_id) === Number(form.game_score_id)
-  )
-})
+const submitForm =
+  async () => {
 
-const filteredCriteria = computed(() => {
-  if (!selectedGameScore.value?.sport) {
-    return props.criteria
+    if (
+      !form.game_score_id ||
+      !form.criteria_id ||
+      !form.judge_id ||
+      form.score_value === ''
+    ) {
+      return
+    }
+
+    saving.value = true
+
+    try {
+
+      await judgingStore.createJudgeScore({
+
+        game_score_id:
+          Number(form.game_score_id),
+
+        criteria_id:
+          Number(form.criteria_id),
+
+        judge_id:
+          Number(form.judge_id),
+
+        score_value:
+          Number(form.score_value)
+      })
+
+      emit('success')
+
+      emit('close')
+
+      form.game_score_id = ''
+      form.criteria_id = ''
+      form.judge_id = ''
+      form.score_value = ''
+
+    } catch (err) {
+
+      console.error(err)
+
+    } finally {
+
+      saving.value = false
+    }
   }
 
-  return props.criteria.filter(
-    criterion => criterion.sport === selectedGameScore.value.sport
-  )
-})
-
-const submitForm = () => {
-  if (
-    !form.game_score_id ||
-    !form.criteria_id ||
-    !form.judge_id ||
-    form.score_value === '' ||
-    Number(form.score_value) < 0
-  ) {
-    return
-  }
-
-  emit('submit', {
-    game_score_id: Number(form.game_score_id),
-    criteria_id: Number(form.criteria_id),
-    judge_id: Number(form.judge_id),
-    score_value: Number(form.score_value)
-  })
-
-  form.game_score_id = ''
-
-  form.criteria_id = ''
-
-  form.judge_id = ''
-
-  form.score_value = ''
-}
 </script>
 
 <template>
 
   <form
-    class="judge-form"
-    @submit.prevent="submitForm"
-  >
+  class="judge-form"
+  @submit.prevent="submitForm"
+>
 
-    <div class="input-group">
+  <div class="form-group">
 
-      <label>
-        Game Score
-      </label>
+    <label>
+      Game Score
+    </label>
 
-      <select
-        v-model="form.game_score_id"
-        class="base-input"
+    <select v-model="form.game_score_id">
+
+      <option value="">
+        Select Game
+      </option>
+
+      <option
+
+        v-for="score in gameScores"
+
+        :key="score.game_score_id"
+
+        :value="score.game_score_id"
       >
+        {{ score.team_name }}
+      </option>
 
-        <option
-          disabled
-          value=""
-        >
-          Select score
-        </option>
+    </select>
 
-        <option
-          v-for="score in gameScores"
-          :key="score.game_score_id"
-          :value="score.game_score_id"
-        >
-          {{ score.team }}
-          -
-          {{ score.event }}
-          -
-          {{ score.sport }}
-        </option>
+  </div>
 
-      </select>
+  <div class="form-group">
 
-    </div>
+    <label>
+      Criteria
+    </label>
 
-    <div class="input-group">
+    <select v-model="form.criteria_id">
 
-      <label>
-        Criteria
-      </label>
+      <option value="">
+        Select Criteria
+      </option>
 
-      <select
-        v-model="form.criteria_id"
-        class="base-input"
+      <option
+
+        v-for="criterion in criteria"
+
+        :key="criterion.criteria_id"
+
+        :value="criterion.criteria_id"
       >
+        {{ criterion.criteria_name }}
+      </option>
 
-        <option
-          disabled
-          value=""
-        >
-          Select criteria
-        </option>
+    </select>
 
-        <option
-          v-for="criterion in filteredCriteria"
-          :key="criterion.criteria_id"
-          :value="criterion.criteria_id"
-        >
-          {{ criterion.criteria_name }}
-        </option>
+  </div>
 
-      </select>
+  <div class="form-group">
 
-    </div>
+    <label>
+      Judge
+    </label>
 
-    <div class="input-group">
+    <select v-model="form.judge_id">
 
-      <label>
-        Judge
-      </label>
+      <option value="">
+        Select Judge
+      </option>
 
-      <select
-        v-model="form.judge_id"
-        class="base-input"
+      <option
+
+        v-for="judge in judges"
+
+        :key="judge.judge_id"
+
+        :value="judge.judge_id"
       >
+        {{ judge.judge_name }}
+      </option>
 
-        <option
-          disabled
-          value=""
-        >
-          Select judge
-        </option>
+    </select>
 
-        <option
-          v-for="judge in judges"
-          :key="judge.judge_id"
-          :value="judge.judge_id"
-        >
-          {{ judge.judge_name }}
-        </option>
+  </div>
 
-      </select>
+  <div class="form-group">
 
-    </div>
+    <label>
+      Score
+    </label>
 
-    <Input
+    <input
+
       v-model="form.score_value"
-      label="Judge Score"
+
       type="number"
+
       min="0"
-      placeholder="Enter score"
     />
 
-    <div class="form-actions">
+  </div>
 
-     <button
+  <div class="form-actions">
+
+    <button
 
       type="button"
 
@@ -221,10 +241,9 @@ const submitForm = () => {
 
     </button>
 
-    </div>
+  </div>
 
-  </form>
-
+</form>
 </template>
 
 <style scoped>

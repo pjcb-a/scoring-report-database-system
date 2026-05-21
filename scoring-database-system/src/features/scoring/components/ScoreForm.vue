@@ -1,22 +1,20 @@
 <script setup>
+
 import {
+  reactive,
   computed,
-  reactive
+  ref
 } from 'vue'
 
-import Input from '@/components/ui/Input.vue'
-import PrimaryButton from '@/components/ui/PrimaryButton.vue'
+import {
+  useScoringStore
+} from '../stores/scoringStore'
 
 const props = defineProps({
 
-  games: {
+  gameScores: {
     type: Array,
-    required: true
-  },
-
-  teams: {
-    type: Array,
-    required: true
+    default: () => []
   }
 })
 
@@ -25,193 +23,127 @@ const emit = defineEmits([
   'close'
 ])
 
+const scoringStore =
+  useScoringStore()
+
+const saving = ref(false)
+
 const form = reactive({
 
-  game_id: '',
+  game_score_id: '',
 
-  team_id: '',
-
-  score_value: '',
-
-  rank_position: '',
-
-  isWinner: false
+  score_value: ''
 })
 
-const selectedGame = computed(() => {
-  return props.games.find(
-    game => Number(game.game_id) === Number(form.game_id)
-  )
-})
+const selectedGameScore =
+  computed(() => {
 
-const scoringType = computed(() => {
-  return selectedGame.value?.scoring_type || ''
-})
+    return props.gameScores.find(
 
-const showRank = computed(() => {
-  return [
-    'Ranked Timed',
-    'Threshold Incremental'
-  ].includes(scoringType.value)
-})
+      score =>
 
-const showWinner = computed(() => {
-  return scoringType.value !== 'Component Score'
-})
+        Number(score.game_score_id)
 
-const submitForm = () => {
-  if (
-    !form.game_id ||
-    !form.team_id ||
-    form.score_value === ''
-  ) {
-    return
-  }
+        ===
 
-  if (
-    showRank.value &&
-    form.rank_position !== '' &&
-    Number(form.rank_position) <= 0
-  ) {
-    return
-  }
-
-  if (Number(form.score_value) < 0) {
-    return
-  }
-
-  emit('submit', {
-    game_id: Number(form.game_id),
-    team_id: Number(form.team_id),
-    score_value: Number(form.score_value),
-    rank_position:
-      showRank.value && form.rank_position !== ''
-        ? Number(form.rank_position)
-        : null,
-    isWinner:
-      showWinner.value
-        ? form.isWinner
-        : false
+        Number(form.game_score_id)
+    )
   })
 
-  form.game_id = ''
+const submitForm =
+  async () => {
 
-  form.team_id = ''
+    if (
+      !form.game_score_id ||
+      form.score_value === ''
+    ) {
+      return
+    }
 
-  form.score_value = ''
+    saving.value = true
 
-  form.rank_position = ''
+    try {
 
-  form.isWinner = false
-}
+      await scoringStore.createScore({
+
+        game_score_id:
+          Number(form.game_score_id),
+
+        score_value:
+          Number(form.score_value)
+      })
+
+      emit('success')
+
+      emit('close')
+
+      form.game_score_id = ''
+      form.score_value = ''
+
+    } catch (err) {
+
+      console.error(err)
+
+    } finally {
+
+      saving.value = false
+    }
+  }
+
 </script>
 
 <template>
 
   <form
-    class="score-form"
-    @submit.prevent="submitForm"
-  >
+  class="score-form"
+  @submit.prevent="submitForm"
+>
 
-    <div class="input-group">
+  <div class="form-group">
 
-      <label>
-        Game
-      </label>
+    <label>
+      Game Score
+    </label>
 
-      <select
-        v-model="form.game_id"
-        class="base-input"
+    <select v-model="form.game_score_id">
+
+      <option value="">
+        Select Game
+      </option>
+
+      <option
+
+        v-for="score in gameScores"
+
+        :key="score.game_score_id"
+
+        :value="score.game_score_id"
       >
+        {{ score.team_name }}
+      </option>
 
-        <option
-          disabled
-          value=""
-        >
-          Select game
-        </option>
+    </select>
 
-        <option
-          v-for="game in games"
-          :key="game.game_id"
-          :value="game.game_id"
-        >
-          {{ game.event }}
-          -
-          {{ game.sport }}
-          -
-          {{ game.round }}
-        </option>
+  </div>
 
-      </select>
+  <div class="form-group">
 
-    </div>
+    <label>
+      Score
+    </label>
 
-    <div class="input-group">
+    <input
 
-      <label>
-        Team
-      </label>
-
-      <select
-        v-model="form.team_id"
-        class="base-input"
-      >
-
-        <option
-          disabled
-          value=""
-        >
-          Select team
-        </option>
-
-        <option
-          v-for="team in teams"
-          :key="team.team_id"
-          :value="team.team_id"
-        >
-          {{ team.team_name }}
-        </option>
-
-      </select>
-
-    </div>
-
-    <Input
       v-model="form.score_value"
-      label="Score Value"
+
       type="number"
+
       min="0"
-      placeholder="Enter score"
     />
 
-    <Input
-      v-if="showRank"
-      v-model="form.rank_position"
-      label="Rank Position"
-      type="number"
-      min="1"
-      placeholder="Enter rank"
-    />
+  </div>
 
-    <div
-      v-if="showWinner"
-      class="checkbox-group"
-    >
-
-      <input
-        id="winner"
-        v-model="form.isWinner"
-        type="checkbox"
-      >
-
-      <label for="winner">
-        Winner
-      </label>
-
-    </div>
-
-     <div class="form-actions">
+  <div class="form-actions">
 
     <button
 
@@ -249,8 +181,7 @@ const submitForm = () => {
 
   </div>
 
-
-  </form>
+</form>
 
 </template>
 
