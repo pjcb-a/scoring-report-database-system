@@ -100,7 +100,6 @@ const selectEvent =
       `/events/${event.event_id}/dashboard`
     )
   }
-
 /*
 ------------------------------------------------------------------------------
 CREATE EVENT
@@ -110,16 +109,61 @@ CREATE EVENT
 const handleCreateEvent =
   async (payload) => {
 
-    const createdEvent =
+    try {
 
-      await eventStore
-        .createEvent(payload)
+      /*
+      ------------------------------------------------------------------------
+      CREATE EVENT
+      ------------------------------------------------------------------------
+      */
 
-    if (createdEvent) {
+      const createdEvent =
 
-      selectEvent(createdEvent)
+        await eventStore.createEvent(
+          payload
+        )
+
+      /*
+      ------------------------------------------------------------------------
+      REFRESH EVENTS
+      ------------------------------------------------------------------------
+      */
+
+      await eventStore.loadEvents()
+
+      /*
+      ------------------------------------------------------------------------
+      CLOSE MODAL
+      ------------------------------------------------------------------------
+      */
 
       showEventForm.value = false
+
+      /*
+      ------------------------------------------------------------------------
+      AUTO SELECT EVENT
+      ------------------------------------------------------------------------
+      */
+
+      if (createdEvent) {
+
+        eventContextStore
+          .setCurrentEvent(
+            createdEvent
+          )
+      }
+
+      /*
+      ------------------------------------------------------------------------
+      REDIRECT TO EVENTS PAGE
+      ------------------------------------------------------------------------
+      */
+
+      await router.push('/events')
+
+    } catch (error) {
+
+      console.error(error)
     }
   }
 
@@ -130,25 +174,13 @@ DELETE EVENT
 */
 
 const handleDeleteEvent =
-   async (eventId) => {
+  async (eventId) => {
 
     try {
-
-      /*
-      ------------------------------------------------------------------------
-      DELETE EVENT
-      ------------------------------------------------------------------------
-      */
 
       await eventStore.removeEvent(
         eventId
       )
-
-      /*
-      ------------------------------------------------------------------------
-      CLEAR ACTIVE EVENT
-      ------------------------------------------------------------------------
-      */
 
       if (
 
@@ -159,18 +191,12 @@ const handleDeleteEvent =
           .clearCurrentEvent()
       }
 
+      await router.push('/events')
+
     } catch (error) {
 
       console.error(error)
-    
-      /*
-      ------------------------------------------------------------------------
-      RETURN TO EVENTS PAGE
-      ------------------------------------------------------------------------
-      */
     }
-      await router.push('/events')
-    
   }
 
 /*
@@ -244,7 +270,7 @@ onMounted(async () => {
 
       @close="showEventForm = false"
 
-      @submit="handleCreateEvent"
+      @save="handleCreateEvent"
     />
 
     <!-- LOADING -->

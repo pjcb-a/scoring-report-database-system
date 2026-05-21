@@ -35,7 +35,7 @@ import {
 
 const emit = defineEmits([
 
-  'submit',
+  'save',
 
   'close'
 ])
