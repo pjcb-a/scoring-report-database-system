@@ -53,65 +53,65 @@ class Event(db.Model):
     )
 
     """
---------------------------------------------------------------------------
-RELATIONSHIPS
---------------------------------------------------------------------------
-"""
+    --------------------------------------------------------------------------
+    RELATIONSHIPS
+    --------------------------------------------------------------------------
+    """
 
-event_sports = db.relationship(
+    event_sports = db.relationship(
 
-    "EventSport",
+        "EventSport",
 
-    back_populates="event",
+        back_populates="event",
 
-    cascade="all, delete-orphan",
+        cascade="all, delete-orphan",
 
-    lazy="selectin"
-)
+        lazy="selectin"
+    )
 
-teams = db.relationship(
+    teams = db.relationship(
 
-    "Team",
+        "Team",
 
-    back_populates="event",
+        back_populates="event",
 
-    cascade="all, delete-orphan",
+        cascade="all, delete-orphan",
 
-    lazy="selectin"
-)
+        lazy="selectin"
+    )
 
-judges = db.relationship(
+    judges = db.relationship(
 
-    "Judge",
+        "Judge",
 
-    back_populates="event",
+        back_populates="event",
 
-    cascade="all, delete-orphan",
+        cascade="all, delete-orphan",
 
-    lazy="selectin"
-)
+        lazy="selectin"
+    )
 
-games = db.relationship(
+    games = db.relationship(
 
-    "Game",
+        "Game",
 
-    back_populates="event",
+        back_populates="event",
 
-    cascade="all, delete-orphan",
+        cascade="all, delete-orphan",
 
-    lazy="selectin"
-)
+        lazy="selectin"
+    )
 
-game_scores = db.relationship(
+    game_scores = db.relationship(
 
-    "GameScore",
+        "GameScore",
 
-    back_populates="event",
+        back_populates="event",
 
-    cascade="all, delete-orphan",
+        cascade="all, delete-orphan",
 
-    lazy="selectin"
-)
+        lazy="selectin"
+    )
 
     """
     --------------------------------------------------------------------------
