@@ -60,13 +60,13 @@ def get_events():
             message='Events fetched successfully.'
         )
 
-    except Exception as e:
+    except Exception as error:
 
         return error_response(
 
             message='Failed to fetch events.',
 
-            errors=[str(e)],
+            errors=[str(error)],
 
             status_code=500
         )
@@ -84,7 +84,7 @@ def get_events():
 
 @event_bp.route(
 
-    '/<int:event_id>',
+    '/events/<int:event_id>',
 
     methods=['GET']
 )
@@ -110,13 +110,13 @@ def get_event(event_id):
             message='Event fetched successfully.'
         )
 
-    except Exception as e:
+    except Exception as error:
 
         return error_response(
 
             message='Failed to fetch event.',
 
-            errors=[str(e)],
+            errors=[str(error)],
 
             status_code=500
         )
@@ -152,6 +152,12 @@ def create_event():
 
                 status_code=400
             )
+
+        """
+        ----------------------------------------------------------------------
+        PAYLOAD
+        ----------------------------------------------------------------------
+        """
 
         event_name = payload.get(
 
@@ -251,7 +257,7 @@ def create_event():
             status_code=201
         )
 
-    except Exception as e:
+    except Exception as error:
 
         db.session.rollback()
 
@@ -259,7 +265,7 @@ def create_event():
 
             message='Failed to create event.',
 
-            errors=[str(e)],
+            errors=[str(error)],
 
             status_code=500
         )
@@ -277,7 +283,7 @@ def create_event():
 
 @event_bp.route(
 
-    '/<int:event_id>',
+    '/events/<int:event_id>',
 
     methods=['PUT']
 )
@@ -350,7 +356,7 @@ def update_event(event_id):
             message='Event updated successfully.'
         )
 
-    except Exception as e:
+    except Exception as error:
 
         db.session.rollback()
 
@@ -358,7 +364,7 @@ def update_event(event_id):
 
             message='Failed to update event.',
 
-            errors=[str(e)],
+            errors=[str(error)],
 
             status_code=500
         )
@@ -376,7 +382,7 @@ def update_event(event_id):
 
 @event_bp.route(
 
-    '/<int:event_id>',
+    '/events/<int:event_id>',
 
     methods=['DELETE']
 )
@@ -404,7 +410,7 @@ def delete_event(event_id):
             message='Event deleted successfully.'
         )
 
-    except Exception as e:
+    except Exception as error:
 
         db.session.rollback()
 
@@ -412,7 +418,7 @@ def delete_event(event_id):
 
             message='Failed to delete event.',
 
-            errors=[str(e)],
+            errors=[str(error)],
 
             status_code=500
         )

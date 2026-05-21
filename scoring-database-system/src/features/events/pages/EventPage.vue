@@ -130,36 +130,49 @@ DELETE EVENT
 */
 
 const handleDeleteEvent =
-  async (eventId) => {
+   async (eventId) => {
 
-    await eventStore.removeEvent(
-      eventId
-    )
+    try {
 
-    /*
-    --------------------------------------------------------------------------
-    CLEAR ACTIVE EVENT
-    --------------------------------------------------------------------------
-    */
+      /*
+      ------------------------------------------------------------------------
+      DELETE EVENT
+      ------------------------------------------------------------------------
+      */
 
-    if (
+      await eventStore.removeEvent(
+        eventId
+      )
 
-      selectedEventId.value === eventId
-    ) {
+      /*
+      ------------------------------------------------------------------------
+      CLEAR ACTIVE EVENT
+      ------------------------------------------------------------------------
+      */
 
-      eventContextStore
-        .clearCurrentEvent()
+      if (
 
+        selectedEventId.value === eventId
+      ) {
+
+        eventContextStore
+          .clearCurrentEvent()
+      }
+
+    } catch (error) {
+
+      console.error(error)
+    
       /*
       ------------------------------------------------------------------------
       RETURN TO EVENTS PAGE
       ------------------------------------------------------------------------
       */
-
-      await router.push('/events')
     }
+      await router.push('/events')
+    
   }
-  
+
 /*
 ------------------------------------------------------------------------------
 MOUNTED
@@ -277,6 +290,7 @@ onMounted(async () => {
         "
 
         @select="selectEvent"
+        @delete="handleDeleteEvent"
       />
     </div>
   </section>

@@ -4,13 +4,13 @@ from app.models import (
 
     Event,
 
+    EventSport,
+
     Team,
 
     Game,
 
-    GameScore,
-
-    EventSport
+    GameScore
 )
 
 from app.utils.responses import (
@@ -23,7 +23,7 @@ from app.utils.responses import (
 
 dashboard_bp = Blueprint(
 
-    'dashboard',
+    'dashboard_bp',
 
     __name__
 )
@@ -70,29 +70,32 @@ def get_dashboard_summary(event_id):
         """
 
         sports = EventSport.query.filter_by(
-                event_id=event_id
-            ).all()
+
+            event_id=event_id
+        ).all()
 
         teams = Team.query.filter_by(
-                event_id=event_id
-            ).all()
+
+            event_id=event_id
+        ).all()
 
         games = Game.query.filter_by(
-                event_id=event_id
-            ).all()
+
+            event_id=event_id
+        ).all()
 
         scores = GameScore.query.filter_by(
 
-                event_id=event_id
-            ).all()
+            event_id=event_id
+        ).all()
 
         """
         ----------------------------------------------------------------------
-        DASHBOARD SUMMARY
+        BUILD DASHBOARD RESPONSE
         ----------------------------------------------------------------------
         """
 
-        summary = {
+        dashboard = {
 
             'event':
                 event.to_dict(),
@@ -138,7 +141,7 @@ def get_dashboard_summary(event_id):
 
             message='Dashboard loaded successfully.',
 
-            data=summary
+            data=dashboard
         )
 
     except Exception as error:
