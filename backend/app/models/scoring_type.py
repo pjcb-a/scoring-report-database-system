@@ -24,7 +24,7 @@ class ScoringType(db.Model):
     --------------------------------------------------------------------------
     """
 
-    scoring_name = db.Column(
+    type = db.Column(
 
         db.String(100),
 

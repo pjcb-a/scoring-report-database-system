@@ -1,8 +1,8 @@
-"""updated schema pt 2
+"""update aaaas
 
-Revision ID: 76e5dd926653
+Revision ID: 2383112004e9
 Revises: 
-Create Date: 2026-05-21 16:01:18.466057
+Create Date: 2026-05-21 18:44:35.305970
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '76e5dd926653'
+revision = '2383112004e9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,10 +28,10 @@ def upgrade():
     )
     op.create_table('scoring_types',
     sa.Column('scoring_type_id', sa.Integer(), nullable=False),
-    sa.Column('scoring_name', sa.String(length=100), nullable=False),
+    sa.Column('type', sa.String(length=100), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('scoring_type_id'),
-    sa.UniqueConstraint('scoring_name')
+    sa.UniqueConstraint('type')
     )
     op.create_table('judges',
     sa.Column('judge_id', sa.Integer(), nullable=False),
