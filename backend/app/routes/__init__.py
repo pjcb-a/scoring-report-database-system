@@ -20,7 +20,7 @@ def register_blueprints(app):
     --------------------------------------------------------------------------
     """
 
-    app.register_blueprint(event_bp)
+    app.register_blueprint(event_bp, url_prefix='/api')
 
     app.register_blueprint(sport_bp)
 

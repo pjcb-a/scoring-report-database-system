@@ -110,21 +110,24 @@ class ScoreComponent(db.Model):
 
         "GameScore",
 
-        back_populates="score_components"
+        back_populates="score_components",
+        lazy="selectin"
     )
 
     criteria = db.relationship(
 
         "Criteria",
 
-        back_populates="score_components"
+        back_populates="score_components",
+        lazy="selectin"
     )
 
     judge = db.relationship(
 
         "Judge",
 
-        back_populates="score_components"
+        back_populates="score_components",
+        lazy="selectin"
     )
 
     """

@@ -110,7 +110,8 @@ class Game(db.Model):
 
         "Event",
 
-        back_populates="games"
+        back_populates="games",
+        lazy="selectin"
     )
 
     event_sport = db.relationship(
@@ -127,7 +128,8 @@ class Game(db.Model):
 
         back_populates="game",
 
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
 
     """

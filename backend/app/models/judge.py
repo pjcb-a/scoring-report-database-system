@@ -73,7 +73,8 @@ class Judge(db.Model):
 
         "Event",
 
-        back_populates="judges"
+        back_populates="judges",
+        lazy="selectin"
     )
 
     score_components = db.relationship(
@@ -81,8 +82,8 @@ class Judge(db.Model):
         "ScoreComponent",
 
         back_populates="judge",
-
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
 
     """
