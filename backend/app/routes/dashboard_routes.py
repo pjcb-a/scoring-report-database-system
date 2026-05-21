@@ -69,26 +69,19 @@ def get_dashboard_summary(event_id):
         ----------------------------------------------------------------------
         """
 
-        sports =
-            EventSport.query.filter_by(
-
+        sports = EventSport.query.filter_by(
                 event_id=event_id
             ).all()
 
-        teams =
-            Team.query.filter_by(
-
+        teams = Team.query.filter_by(
                 event_id=event_id
             ).all()
 
-        games =
-            Game.query.filter_by(
-
+        games = Game.query.filter_by(
                 event_id=event_id
             ).all()
 
-        scores =
-            GameScore.query.filter_by(
+        scores = GameScore.query.filter_by(
 
                 event_id=event_id
             ).all()
