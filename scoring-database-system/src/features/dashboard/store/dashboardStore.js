@@ -1,172 +1,235 @@
+import { defineStore } from 'pinia'
+
 import { computed, ref } from 'vue'
 
 import {
+
   fetchDashboardSummaryByEvent
+
 } from '../services/dashboardService'
 
 import {
+
   useEventContextStore
+
 } from '@/features/events/store/eventContextStore'
 
 
-const sports = ref([])
+export const useDashboardStore = defineStore(
 
-const games = ref([])
+  'dashboardStore',
 
-const scores = ref([])
+  () => {
 
-const loading = ref(false)
+    /*
+    --------------------------------------------------------------------------
+    EVENT CONTEXT
+    --------------------------------------------------------------------------
+    */
 
-const error = ref(null)
+    const eventContextStore =
+      useEventContextStore()
 
+    /*
+    --------------------------------------------------------------------------
+    STATE
+    --------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| EVENT CONTEXT
-|--------------------------------------------------------------------------
-*/
+    const sports = ref([])
 
-const eventContextStore =
-  useEventContextStore()
+    const games = ref([])
 
+    const scores = ref([])
 
-/*
-|--------------------------------------------------------------------------
-| COMPUTED
-|--------------------------------------------------------------------------
-*/
+    const statistics = ref({})
 
-const currentEvent =
-  computed(() =>
-    eventContextStore.currentEvent
-  )
+    const loading = ref(false)
 
-const currentEventId =
-  computed(() =>
-    eventContextStore.currentEventId
-  )
+    const error = ref(null)
 
-const totalSports = computed(() => {
-  return sports.value.length
-})
+    /*
+    --------------------------------------------------------------------------
+    COMPUTED
+    --------------------------------------------------------------------------
+    */
 
-const totalGames = computed(() => {
-  return games.value.length
-})
-
-const totalScores = computed(() => {
-  return scores.value.length
-})
-
-const recentGames = computed(() => {
-
-  return games.value.slice(-5)
-})
-
-const recentWinners = computed(() => {
-
-  return scores.value.filter(
-    score => score.isWinner
-  ).slice(-5)
-})
-
-
-/*
-|--------------------------------------------------------------------------
-| LOAD DASHBOARD
-|--------------------------------------------------------------------------
-*/
-
-const loadDashboard = async () => {
-
-  if (!currentEventId.value) {
-    return
-  }
-
-  loading.value = true
-
-  error.value = null
-
-  try {
-
-    const data =
-      await fetchDashboardSummaryByEvent(
-        currentEventId.value
+    const currentEvent =
+      computed(() =>
+        eventContextStore.currentEvent
       )
 
-    sports.value = data.sports || []
+    const currentEventId =
+      computed(() =>
+        eventContextStore.currentEventId
+      )
 
-    games.value = data.games || []
+    const totalSports =
+      computed(() => {
 
-    scores.value = data.scores || []
+        return statistics.value
+          .total_sports || 0
+      })
 
-  } catch (err) {
+    const totalGames =
+      computed(() => {
 
-    console.error(err)
+        return statistics.value
+          .total_games || 0
+      })
 
-    error.value =
-      err.message ||
-      'Failed to load dashboard.'
+    const totalScores =
+      computed(() => {
 
-  } finally {
+        return statistics.value
+          .total_scores || 0
+      })
 
-    loading.value = false
+    const recentGames =
+      computed(() => {
+
+        return games.value.slice(-5)
+      })
+
+    /*
+    --------------------------------------------------------------------------
+    LOAD DASHBOARD
+    --------------------------------------------------------------------------
+    */
+
+    const loadDashboard =
+      async () => {
+
+        if (!currentEventId.value) {
+          return
+        }
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          const response =
+
+            await fetchDashboardSummaryByEvent(
+
+              currentEventId.value
+            )
+
+          /*
+          --------------------------------------------------------------------
+          NORMALIZED BACKEND RESPONSE
+          --------------------------------------------------------------------
+          */
+
+          const dashboard =
+            response.data || {}
+
+          sports.value =
+            dashboard.sports || []
+
+          games.value =
+            dashboard.games || []
+
+          scores.value =
+            dashboard.scores || []
+
+          statistics.value =
+            dashboard.statistics || {}
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.response?.data?.message
+
+            ||
+
+            'Failed to load dashboard.'
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    RESET DASHBOARD
+    --------------------------------------------------------------------------
+    */
+
+    const resetDashboard = () => {
+
+      sports.value = []
+
+      games.value = []
+
+      scores.value = []
+
+      statistics.value = {}
+
+      loading.value = false
+
+      error.value = null
+    }
+
+    return {
+
+      /*
+      ------------------------------------------------------------------------
+      EVENT
+      ------------------------------------------------------------------------
+      */
+
+      currentEvent,
+
+      currentEventId,
+
+      /*
+      ------------------------------------------------------------------------
+      STATE
+      ------------------------------------------------------------------------
+      */
+
+      sports,
+
+      games,
+
+      scores,
+
+      statistics,
+
+      loading,
+
+      error,
+
+      /*
+      ------------------------------------------------------------------------
+      COMPUTED
+      ------------------------------------------------------------------------
+      */
+
+      totalSports,
+
+      totalGames,
+
+      totalScores,
+
+      recentGames,
+
+      /*
+      ------------------------------------------------------------------------
+      METHODS
+      ------------------------------------------------------------------------
+      */
+
+      loadDashboard,
+
+      resetDashboard
+    }
   }
-}
-
-
-export function useDashboardStore() {
-
-  return {
-
-    /*
-    ------------------------------------------------------------------------
-    EVENT
-    ------------------------------------------------------------------------
-    */
-
-    currentEvent,
-
-    currentEventId,
-
-    /*
-    ------------------------------------------------------------------------
-    STATE
-    ------------------------------------------------------------------------
-    */
-
-    sports,
-
-    games,
-
-    scores,
-
-    loading,
-
-    error,
-
-    /*
-    ------------------------------------------------------------------------
-    COMPUTED
-    ------------------------------------------------------------------------
-    */
-
-    totalSports,
-
-    totalGames,
-
-    totalScores,
-
-    recentGames,
-
-    recentWinners,
-
-    /*
-    ------------------------------------------------------------------------
-    METHODS
-    ------------------------------------------------------------------------
-    */
-
-    loadDashboard
-  }
-}
+)
