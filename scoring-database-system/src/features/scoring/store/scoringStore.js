@@ -88,7 +88,7 @@ export const useScoringStore = defineStore(
 
             Array.isArray(response.data)
 
-              ? response.data
+              ? response
 
               : []
 

@@ -8,7 +8,7 @@ import {
 
 import {
   useScoringStore
-} from '../stores/scoringStore'
+} from '../store/scoringStore'
 
 const props = defineProps({
 
