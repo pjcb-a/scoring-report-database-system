@@ -3,6 +3,8 @@ import {
 
   computed,
 
+  onMounted,
+
   ref
 
 } from 'vue'
@@ -18,6 +20,12 @@ import {
   useEventContextStore
 
 } from '@/features/events/store/eventContextStore'
+
+import {
+
+  getScoringTypes
+
+} from '../services/sportService'
 
 
 /*
@@ -57,6 +65,10 @@ const scoringType = ref('')
 
 const saving = ref(false)
 
+const scoringTypes = ref([])
+
+const loadingScoringTypes = ref(false)
+
 /*
 ------------------------------------------------------------------------------
 COMPUTED
@@ -76,6 +88,62 @@ const currentEventId =
     return eventContextStore
       .currentEventId
   })
+
+/*
+------------------------------------------------------------------------------
+FETCH SCORING TYPES
+------------------------------------------------------------------------------
+*/
+
+const fetchScoringTypes =
+  async () => {
+
+    loadingScoringTypes.value = true
+
+    try {
+
+      const response =
+        await getScoringTypes()
+
+      /*
+      ------------------------------------------------------------------------
+      TRANSFORM DATA TO MATCH SELECT OPTIONS FORMAT
+      ------------------------------------------------------------------------
+      */
+
+      scoringTypes.value =
+        response.data.map(type => ({
+
+          value: type.scoring_name,
+
+          label: type.scoring_name
+        }))
+
+    } catch (err) {
+
+      console.error(
+        'Failed to fetch scoring types:',
+        err
+      )
+
+      scoringTypes.value = []
+
+    } finally {
+
+      loadingScoringTypes.value = false
+    }
+  }
+
+/*
+------------------------------------------------------------------------------
+LIFECYCLE
+------------------------------------------------------------------------------
+*/
+
+onMounted(() => {
+
+  fetchScoringTypes()
+})
 
 /*
 ------------------------------------------------------------------------------
