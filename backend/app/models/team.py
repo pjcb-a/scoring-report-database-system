@@ -5,6 +5,18 @@ class Team(db.Model):
 
     __tablename__ = "teams"
 
+    __table_args__ = (
+
+        db.UniqueConstraint(
+
+            "event_id",
+
+            "team_name",
+
+            name="uq_event_team_name"
+        ),
+    )
+
     """
     --------------------------------------------------------------------------
     PRIMARY KEY
@@ -12,13 +24,15 @@ class Team(db.Model):
     """
 
     team_id = db.Column(
+
         db.Integer,
+
         primary_key=True
     )
 
     """
     --------------------------------------------------------------------------
-    EVENT OWNERSHIP
+    FOREIGN KEY
     --------------------------------------------------------------------------
     """
 
@@ -27,7 +41,10 @@ class Team(db.Model):
         db.Integer,
 
         db.ForeignKey(
-            "events.event_id"
+
+            "events.event_id",
+
+            ondelete="CASCADE"
         ),
 
         nullable=False
@@ -86,20 +103,21 @@ class Team(db.Model):
         return {
 
             "team_id":
-            self.team_id,
+                self.team_id,
 
             "event_id":
-            self.event_id,
+                self.event_id,
 
             "team_name":
-            self.team_name,
+                self.team_name,
 
             "team_color":
-            self.team_color,
+                self.team_color,
 
             "event":
-            self.event.event_name
-            if self.event else None
+                self.event.event_name
+                if self.event
+                else None
         }
 
     """

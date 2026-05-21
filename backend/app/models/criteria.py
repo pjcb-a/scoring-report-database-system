@@ -2,16 +2,33 @@ from app.extensions import db
 
 
 class Criteria(db.Model):
+
     __tablename__ = "criteria"
+
     __table_args__ = (
+
         db.UniqueConstraint(
-            "sport_id",
+
+            "event_sport_id",
+
             "criteria_name",
-            name="uq_criteria_sport_name"
+
+            name="uq_event_sport_criteria"
         ),
     )
 
-    criteria_id = db.Column(db.Integer, primary_key=True)
+    """
+    --------------------------------------------------------------------------
+    PRIMARY KEY
+    --------------------------------------------------------------------------
+    """
+
+    criteria_id = db.Column(
+
+        db.Integer,
+
+        primary_key=True
+    )
 
     """
     --------------------------------------------------------------------------
@@ -19,9 +36,17 @@ class Criteria(db.Model):
     --------------------------------------------------------------------------
     """
 
-    sport_id = db.Column(
+    event_sport_id = db.Column(
+
         db.Integer,
-        db.ForeignKey("sports.sport_id", ondelete="CASCADE"),
+
+        db.ForeignKey(
+
+            "event_sports.event_sport_id",
+
+            ondelete="CASCADE"
+        ),
+
         nullable=False
     )
 
@@ -31,8 +56,19 @@ class Criteria(db.Model):
     --------------------------------------------------------------------------
     """
 
-    criteria_name = db.Column(db.String(150), nullable=False)
-    percentage_weight = db.Column(db.Float, nullable=False)
+    criteria_name = db.Column(
+
+        db.String(150),
+
+        nullable=False
+    )
+
+    percentage = db.Column(
+
+        db.Float,
+
+        nullable=False
+    )
 
     """
     --------------------------------------------------------------------------
@@ -40,24 +76,53 @@ class Criteria(db.Model):
     --------------------------------------------------------------------------
     """
 
+    event_sport = db.relationship(
 
-    sport = db.relationship(
-        "Sport",
+        "EventSport",
+
         back_populates="criteria"
     )
 
     score_components = db.relationship(
+
         "ScoreComponent",
+
         back_populates="criteria",
+
         cascade="all, delete-orphan"
     )
+
+    """
+    --------------------------------------------------------------------------
+    SERIALIZER
+    --------------------------------------------------------------------------
+    """
 
     def to_dict(self):
 
         return {
-            "criteria_id": self.criteria_id,
-            "sport_id": self.sport_id,
-            "sport": self.sport.sport_name if self.sport else None,
-            "criteria_name": self.criteria_name,
-            "percentage_weight": self.percentage_weight
+
+            "criteria_id":
+                self.criteria_id,
+
+            "event_sport_id":
+                self.event_sport_id,
+
+            "criteria_name":
+                self.criteria_name,
+
+            "percentage":
+                self.percentage,
+
+            "sport":
+                self.event_sport.sport.sport_name
+                if self.event_sport
+                and self.event_sport.sport
+                else None,
+
+            "event":
+                self.event_sport.event.event_name
+                if self.event_sport
+                and self.event_sport.event
+                else None
         }

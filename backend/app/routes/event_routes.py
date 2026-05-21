@@ -1,171 +1,418 @@
-from sqlalchemy import func
-
-from flask import Blueprint
+from flask import Blueprint, request
 
 from app.extensions import db
+
 from app.models.event import Event
-from app.routes.utils import (
-    clean_string,
-    error_response,
-    missing_fields,
-    parse_date,
-    request_data,
-    success_response
+
+from app.utils.responses import (
+
+    success_response,
+
+    error_response
 )
 
 
-event_bp = Blueprint("event_bp", __name__)
+event_bp = Blueprint(
+
+    'event_bp',
+
+    __name__
+)
 
 
-@event_bp.route("/api/events", methods=["GET"])
+"""
+|--------------------------------------------------------------------------
+| GET ALL EVENTS
+|--------------------------------------------------------------------------
+|
+| Returns all events ordered by latest start date.
+|
+"""
+
+
+@event_bp.route(
+
+    '/',
+
+    methods=['GET']
+)
 def get_events():
-    events = Event.query.order_by(Event.start_day.desc()).all()
 
-    return success_response(
-        [event.to_dict() for event in events],
-        "Events fetched successfully."
-    )
+    try:
 
+        events = Event.query.order_by(
 
-@event_bp.route("/api/events/<int:event_id>", methods=["GET"])
-def get_event(event_id):
-    event = Event.query.get(event_id)
+            Event.start_day.desc()
 
-    if not event:
-        return error_response("Event not found.", 404)
+        ).all()
 
-    return success_response(
-        event.to_dict(),
-        "Event fetched successfully."
-    )
+        data = [
 
+            event.to_dict()
 
-@event_bp.route("/api/events", methods=["POST"])
-def create_event():
-    data = request_data()
-    missing = missing_fields(
-        data,
-        ["event_name", "start_day", "end_day", "status"]
-    )
+            for event in events
+        ]
 
-    if missing:
-        return error_response("Required fields are missing.", 400, missing)
+        return success_response(
 
-    event_name = clean_string(data["event_name"])
-    status = clean_string(data["status"])
-    start_day, start_error = parse_date(data["start_day"], "start_day")
-    end_day, end_error = parse_date(data["end_day"], "end_day")
+            data=data,
 
-    errors = [error for error in [start_error, end_error] if error]
-
-    if errors:
-        return error_response("Invalid event data.", 400, errors)
-
-    if end_day < start_day:
-        return error_response(
-            "end_day cannot be earlier than start_day.",
-            400
+            message='Events fetched successfully.'
         )
 
-    existing = Event.query.filter(
-        func.lower(Event.event_name) == event_name.lower()
-    ).first()
+    except Exception as e:
 
-    if existing:
-        return error_response("Event name already exists.", 409)
+        return error_response(
 
-    event = Event(
-        event_name=event_name,
-        start_day=start_day,
-        end_day=end_day,
-        status=status
-    )
+            message='Failed to fetch events.',
 
-    db.session.add(event)
-    db.session.commit()
+            errors=[str(e)],
+
+            status_code=500
+        )
 
 
-    return success_response(
-        event.to_dict(),
-        "Event created successfully.",
-        201
-    )
+"""
+|--------------------------------------------------------------------------
+| GET SINGLE EVENT
+|--------------------------------------------------------------------------
+|
+| Returns a single event by ID.
+|
+"""
 
 
-@event_bp.route("/api/events/<int:event_id>", methods=["PUT"])
-def update_event(event_id):
-    event = Event.query.get(event_id)
+@event_bp.route(
 
-    if not event:
-        return error_response("Event not found.", 404)
+    '/<int:event_id>',
 
-    data = request_data()
+    methods=['GET']
+)
+def get_event(event_id):
 
-    if "event_name" in data:
-        event_name = clean_string(data["event_name"])
+    try:
+
+        event = Event.query.get(event_id)
+
+        if not event:
+
+            return error_response(
+
+                message='Event not found.',
+
+                status_code=404
+            )
+
+        return success_response(
+
+            data=event.to_dict(),
+
+            message='Event fetched successfully.'
+        )
+
+    except Exception as e:
+
+        return error_response(
+
+            message='Failed to fetch event.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
+
+
+"""
+|--------------------------------------------------------------------------
+| CREATE EVENT
+|--------------------------------------------------------------------------
+|
+| Creates a new event.
+|
+"""
+
+
+@event_bp.route(
+
+    '/',
+
+    methods=['POST']
+)
+def create_event():
+
+    try:
+
+        payload = request.get_json()
+
+        if not payload:
+
+            return error_response(
+
+                message='Request body is required.',
+
+                status_code=400
+            )
+
+        event_name = payload.get(
+
+            'event_name'
+        )
+
+        start_day = payload.get(
+
+            'start_day'
+        )
+
+        end_day = payload.get(
+
+            'end_day'
+        )
+
+        status = payload.get(
+
+            'status',
+
+            'Upcoming'
+        )
+
+        """
+        ----------------------------------------------------------------------
+        VALIDATION
+        ----------------------------------------------------------------------
+        """
+
+        validation_errors = {}
 
         if not event_name:
-            return error_response("event_name is required.", 400)
 
-        existing = Event.query.filter(
-            func.lower(Event.event_name) == event_name.lower(),
-            Event.event_id != event_id
-        ).first()
+            validation_errors[
+                'event_name'
+            ] = [
 
-        if existing:
-            return error_response("Event name already exists.", 409)
+                'Event name is required.'
+            ]
 
-        event.event_name = event_name
+        if not start_day:
 
-    if "start_day" in data:
-        start_day, error = parse_date(data["start_day"], "start_day")
+            validation_errors[
+                'start_day'
+            ] = [
 
-        if error:
-            return error_response("Invalid event data.", 400, [error])
+                'Start day is required.'
+            ]
 
-        event.start_day = start_day
+        if not end_day:
 
-    if "end_day" in data:
-        end_day, error = parse_date(data["end_day"], "end_day")
+            validation_errors[
+                'end_day'
+            ] = [
 
-        if error:
-            return error_response("Invalid event data.", 400, [error])
+                'End day is required.'
+            ]
 
-        event.end_day = end_day
+        if validation_errors:
 
-    if event.end_day < event.start_day:
-        return error_response(
-            "end_day cannot be earlier than start_day.",
-            400
+            return error_response(
+
+                message='Validation failed.',
+
+                errors=validation_errors,
+
+                status_code=400
+            )
+
+        """
+        ----------------------------------------------------------------------
+        CREATE EVENT
+        ----------------------------------------------------------------------
+        """
+
+        new_event = Event(
+
+            event_name=event_name,
+
+            start_day=start_day,
+
+            end_day=end_day,
+
+            status=status
         )
 
-    if "status" in data:
-        status = clean_string(data["status"])
+        db.session.add(new_event)
 
-        if not status:
-            return error_response("status is required.", 400)
+        db.session.commit()
 
-        event.status = status
+        return success_response(
 
-    db.session.commit()
+            data=new_event.to_dict(),
 
-    return success_response(
-        event.to_dict(),
-        "Event updated successfully."
-    )
+            message='Event created successfully.',
+
+            status_code=201
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to create event.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
 
 
-@event_bp.route("/api/events/<int:event_id>", methods=["DELETE"])
+"""
+|--------------------------------------------------------------------------
+| UPDATE EVENT
+|--------------------------------------------------------------------------
+|
+| Updates an existing event.
+|
+"""
+
+
+@event_bp.route(
+
+    '/<int:event_id>',
+
+    methods=['PUT']
+)
+def update_event(event_id):
+
+    try:
+
+        event = Event.query.get(event_id)
+
+        if not event:
+
+            return error_response(
+
+                message='Event not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        if not payload:
+
+            return error_response(
+
+                message='Request body is required.',
+
+                status_code=400
+            )
+
+        """
+        ----------------------------------------------------------------------
+        UPDATE FIELDS
+        ----------------------------------------------------------------------
+        """
+
+        event.event_name = payload.get(
+
+            'event_name',
+
+            event.event_name
+        )
+
+        event.start_day = payload.get(
+
+            'start_day',
+
+            event.start_day
+        )
+
+        event.end_day = payload.get(
+
+            'end_day',
+
+            event.end_day
+        )
+
+        event.status = payload.get(
+
+            'status',
+
+            event.status
+        )
+
+        db.session.commit()
+
+        return success_response(
+
+            data=event.to_dict(),
+
+            message='Event updated successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to update event.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
+
+
+"""
+|--------------------------------------------------------------------------
+| DELETE EVENT
+|--------------------------------------------------------------------------
+|
+| Deletes an event.
+|
+"""
+
+
+@event_bp.route(
+
+    '/<int:event_id>',
+
+    methods=['DELETE']
+)
 def delete_event(event_id):
-    event = Event.query.get(event_id)
 
-    if not event:
-        return error_response("Event not found.", 404)
+    try:
 
-    db.session.delete(event)
-    db.session.commit()
+        event = Event.query.get(event_id)
 
-    return success_response(
-        {"event_id": event_id},
-        "Event deleted successfully."
-    )
+        if not event:
+
+            return error_response(
+
+                message='Event not found.',
+
+                status_code=404
+            )
+
+        db.session.delete(event)
+
+        db.session.commit()
+
+        return success_response(
+
+            message='Event deleted successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to delete event.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )

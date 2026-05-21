@@ -1,186 +1,316 @@
-from sqlalchemy import func
-
-from flask import Blueprint
+from flask import Blueprint, request
 
 from app.extensions import db
+
 from app.models.criteria import Criteria
-from app.models.sport import Sport
-from app.routes.utils import (
-    clean_string,
-    error_response,
-    missing_fields,
-    parse_float,
-    parse_int,
-    request_data,
-    success_response
+from app.models.event_sport import EventSport
+
+from app.utils.responses import (
+
+    success_response,
+
+    error_response
 )
 
 
-criteria_bp = Blueprint("criteria_bp", __name__)
+criteria_bp = Blueprint(
+
+    'criteria_bp',
+
+    __name__
+)
 
 
-@criteria_bp.route("/api/criteria", methods=["GET"])
-def get_criteria():
-    criteria = Criteria.query.order_by(Criteria.criteria_name.asc()).all()
-
-    return success_response(
-        [item.to_dict() for item in criteria],
-        "Criteria fetched successfully."
-    )
+"""
+|--------------------------------------------------------------------------
+| GET CRITERIA BY EVENT SPORT
+|--------------------------------------------------------------------------
+"""
 
 
-@criteria_bp.route("/api/criteria/<int:criteria_id>", methods=["GET"])
-def get_criterion(criteria_id):
-    criterion = Criteria.query.get(criteria_id)
+@criteria_bp.route(
 
-    if not criterion:
-        return error_response("Criteria not found.", 404)
+    '/event-sports/<int:event_sport_id>/criteria',
 
-    return success_response(
-        criterion.to_dict(),
-        "Criteria fetched successfully."
-    )
+    methods=['GET']
+)
+def get_event_sport_criteria(event_sport_id):
 
+    try:
 
-@criteria_bp.route("/api/criteria", methods=["POST"])
-def create_criteria():
-    data = request_data()
-    missing = missing_fields(
-        data,
-        ["sport_id", "criteria_name", "percentage_weight"]
-    )
+        event_sport = EventSport.query.get(
 
-    if missing:
-        return error_response("Required fields are missing.", 400, missing)
-
-    sport_id, sport_error = parse_int(data["sport_id"], "sport_id")
-    percentage_weight, weight_error = parse_float(
-        data["percentage_weight"],
-        "percentage_weight"
-    )
-    errors = [error for error in [sport_error, weight_error] if error]
-
-    if errors:
-        return error_response("Invalid criteria data.", 400, errors)
-
-    if percentage_weight < 0 or percentage_weight > 100:
-        return error_response(
-            "percentage_weight must be between 0 and 100.",
-            400
+            event_sport_id
         )
 
-    sport = Sport.query.get(sport_id)
+        if not event_sport:
 
-    if not sport:
-        return error_response("Sport not found.", 404)
+            return error_response(
 
-    criteria_name = clean_string(data["criteria_name"])
-    existing = Criteria.query.filter(
-        Criteria.sport_id == sport_id,
-        func.lower(Criteria.criteria_name) == criteria_name.lower()
-    ).first()
+                message='Event sport not found.',
 
-    if existing:
-        return error_response(
-            "Criteria already exists for this sport.",
-            409
+                status_code=404
+            )
+
+        criteria = Criteria.query.filter_by(
+
+            event_sport_id=event_sport_id
+
+        ).all()
+
+        data = [
+
+            criterion.to_dict()
+
+            for criterion in criteria
+        ]
+
+        return success_response(
+
+            data=data,
+
+            message='Criteria fetched successfully.'
         )
 
-    criterion = Criteria(
-        sport_id=sport_id,
-        criteria_name=criteria_name,
-        percentage_weight=percentage_weight
-    )
+    except Exception as e:
 
-    db.session.add(criterion)
-    db.session.commit()
+        return error_response(
 
-    return success_response(
-        criterion.to_dict(),
-        "Criteria created successfully.",
-        201
-    )
+            message='Failed to fetch criteria.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
 
 
-@criteria_bp.route("/api/criteria/<int:criteria_id>", methods=["PUT"])
-def update_criteria(criteria_id):
-    criterion = Criteria.query.get(criteria_id)
+"""
+|--------------------------------------------------------------------------
+| CREATE CRITERIA
+|--------------------------------------------------------------------------
+"""
 
-    if not criterion:
-        return error_response("Criteria not found.", 404)
 
-    data = request_data()
-    sport_id = criterion.sport_id
+@criteria_bp.route(
 
-    if "sport_id" in data:
-        sport_id, error = parse_int(data["sport_id"], "sport_id")
+    '/event-sports/<int:event_sport_id>/criteria',
 
-        if error:
-            return error_response("Invalid criteria data.", 400, [error])
+    methods=['POST']
+)
+def create_criteria(event_sport_id):
 
-        sport = Sport.query.get(sport_id)
+    try:
 
-        if not sport:
-            return error_response("Sport not found.", 404)
+        event_sport = EventSport.query.get(
 
-        criterion.sport_id = sport_id
+            event_sport_id
+        )
 
-    if "criteria_name" in data:
-        criteria_name = clean_string(data["criteria_name"])
+        if not event_sport:
+
+            return error_response(
+
+                message='Event sport not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        criteria_name = payload.get(
+            'criteria_name'
+        )
+
+        percentage = payload.get(
+            'percentage'
+        )
+
+        validation_errors = {}
 
         if not criteria_name:
-            return error_response("criteria_name is required.", 400)
 
-        existing = Criteria.query.filter(
-            Criteria.sport_id == sport_id,
-            func.lower(Criteria.criteria_name) == criteria_name.lower(),
-            Criteria.criteria_id != criteria_id
-        ).first()
+            validation_errors[
+                'criteria_name'
+            ] = [
 
-        if existing:
+                'Criteria name is required.'
+            ]
+
+        if percentage is None:
+
+            validation_errors[
+                'percentage'
+            ] = [
+
+                'Percentage is required.'
+            ]
+
+        if validation_errors:
+
             return error_response(
-                "Criteria already exists for this sport.",
-                409
+
+                message='Validation failed.',
+
+                errors=validation_errors,
+
+                status_code=400
             )
 
-        criterion.criteria_name = criteria_name
+        criterion = Criteria(
 
-    if "percentage_weight" in data:
-        percentage_weight, error = parse_float(
-            data["percentage_weight"],
-            "percentage_weight"
+            criteria_name=criteria_name,
+
+            percentage=percentage,
+
+            event_sport_id=event_sport_id
         )
 
-        if error:
-            return error_response("Invalid criteria data.", 400, [error])
+        db.session.add(criterion)
 
-        if percentage_weight < 0 or percentage_weight > 100:
+        db.session.commit()
+
+        return success_response(
+
+            data=criterion.to_dict(),
+
+            message='Criteria created successfully.',
+
+            status_code=201
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to create criteria.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
+
+
+"""
+|--------------------------------------------------------------------------
+| UPDATE CRITERIA
+|--------------------------------------------------------------------------
+"""
+
+
+@criteria_bp.route(
+
+    '/criteria/<int:criteria_id>',
+
+    methods=['PUT']
+)
+def update_criteria(criteria_id):
+
+    try:
+
+        criterion = Criteria.query.get(
+
+            criteria_id
+        )
+
+        if not criterion:
+
             return error_response(
-                "percentage_weight must be between 0 and 100.",
-                400
+
+                message='Criteria not found.',
+
+                status_code=404
             )
 
-        criterion.percentage_weight = percentage_weight
+        payload = request.get_json()
 
-    db.session.commit()
+        criterion.criteria_name = payload.get(
 
-    return success_response(
-        criterion.to_dict(),
-        "Criteria updated successfully."
-    )
+            'criteria_name',
+
+            criterion.criteria_name
+        )
+
+        criterion.percentage = payload.get(
+
+            'percentage',
+
+            criterion.percentage
+        )
+
+        db.session.commit()
+
+        return success_response(
+
+            data=criterion.to_dict(),
+
+            message='Criteria updated successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to update criteria.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
 
 
-@criteria_bp.route("/api/criteria/<int:criteria_id>", methods=["DELETE"])
+"""
+|--------------------------------------------------------------------------
+| DELETE CRITERIA
+|--------------------------------------------------------------------------
+"""
+
+
+@criteria_bp.route(
+
+    '/criteria/<int:criteria_id>',
+
+    methods=['DELETE']
+)
 def delete_criteria(criteria_id):
-    criterion = Criteria.query.get(criteria_id)
 
-    if not criterion:
-        return error_response("Criteria not found.", 404)
+    try:
 
-    db.session.delete(criterion)
-    db.session.commit()
+        criterion = Criteria.query.get(
 
-    return success_response(
-        {"criteria_id": criteria_id},
-        "Criteria deleted successfully."
-    )
+            criteria_id
+        )
+
+        if not criterion:
+
+            return error_response(
+
+                message='Criteria not found.',
+
+                status_code=404
+            )
+
+        db.session.delete(criterion)
+
+        db.session.commit()
+
+        return success_response(
+
+            message='Criteria deleted successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to delete criteria.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )

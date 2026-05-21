@@ -1,317 +1,379 @@
-from sqlalchemy import func
-
-from flask import Blueprint
+from flask import Blueprint, request
 
 from app.extensions import db
 
+from app.models.sport import Sport
 from app.models.event import Event
 from app.models.event_sport import EventSport
-from app.models.scoring_type import ScoringType
-from app.models.sport import Sport
 
-from app.routes.utils import (
-    clean_string,
-    error_response,
-    missing_fields,
-    parse_int,
-    request_data,
-    success_response
+from app.utils.responses import (
+
+    success_response,
+
+    error_response
 )
 
 
 sport_bp = Blueprint(
-    "sport_bp",
+
+    'sport_bp',
+
     __name__
 )
 
 
 """
-------------------------------------------------------------------------------
-GLOBAL SPORTS
-MASTER SPORT TYPES
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| GET SPORTS BY EVENT
+|--------------------------------------------------------------------------
+|
+| Returns all sports linked to a specific event.
+|
 """
+
 
 @sport_bp.route(
-    "/api/sports",
-    methods=["GET"]
+
+    '/events/<int:event_id>/sports',
+
+    methods=['GET']
 )
-def get_sports():
+def get_event_sports(event_id):
 
-    sports = Sport.query.order_by(
-        Sport.sport_name.asc()
-    ).all()
+    try:
 
-    return success_response(
+        event = Event.query.get(event_id)
 
-        [sport.to_dict() for sport in sports],
+        if not event:
 
-        "Sports fetched successfully."
-    )
+            return error_response(
 
+                message='Event not found.',
 
-"""
-------------------------------------------------------------------------------
-GET SPORTS OF EVENT
-------------------------------------------------------------------------------
-"""
+                status_code=404
+            )
 
-@sport_bp.route(
-    "/api/events/<int:event_id>/sports",
-    methods=["GET"]
-)
-def get_sports_by_event(event_id):
+        event_sports = EventSport.query.filter_by(
 
-    event_sports = EventSport.query.filter_by(
+            event_id=event_id
 
-        event_id=event_id
+        ).all()
 
-    ).all()
+        data = [
 
-    return success_response(
+            {
+                **event_sport.sport.to_dict(),
 
-        [
-            event_sport.to_dict()
+                'event_sport_id':
+                    event_sport.event_sport_id
+            }
+
             for event_sport in event_sports
-        ],
-
-        "Event sports fetched successfully."
-    )
-
-
-"""
-------------------------------------------------------------------------------
-CREATE GLOBAL SPORT
-------------------------------------------------------------------------------
-"""
-
-@sport_bp.route(
-    "/api/sports",
-    methods=["POST"]
-)
-def create_sport():
-
-    data = request_data()
-
-    missing = missing_fields(
-
-        data,
-
-        [
-            "sport_name",
-            "scoring_type_id"
         ]
-    )
 
-    if missing:
+        return success_response(
+
+            data=data,
+
+            message='Sports fetched successfully.'
+        )
+
+    except Exception as e:
 
         return error_response(
 
-            "Required fields are missing.",
+            message='Failed to fetch sports.',
 
-            400,
+            errors=[str(e)],
 
-            missing
+            status_code=500
         )
-
-    sport_name = clean_string(
-        data["sport_name"]
-    )
-
-    scoring_type_id, error = parse_int(
-
-        data["scoring_type_id"],
-
-        "scoring_type_id"
-    )
-
-    if error:
-
-        return error_response(
-
-            "Invalid sport data.",
-
-            400,
-
-            [error]
-        )
-
-    scoring_type = ScoringType.query.get(
-        scoring_type_id
-    )
-
-    if not scoring_type:
-
-        return error_response(
-
-            "Scoring type not found.",
-
-            404
-        )
-
-    existing = Sport.query.filter(
-
-        func.lower(Sport.sport_name)
-        == sport_name.lower()
-
-    ).first()
-
-    if existing:
-
-        return error_response(
-
-            "Sport name already exists.",
-
-            409
-        )
-
-    sport = Sport(
-
-        sport_name=sport_name,
-
-        scoring_type_id=scoring_type_id
-    )
-
-    db.session.add(sport)
-
-    db.session.commit()
-
-    return success_response(
-
-        sport.to_dict(),
-
-        "Sport created successfully.",
-
-        201
-    )
 
 
 """
-------------------------------------------------------------------------------
-ADD SPORT TO EVENT
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| CREATE SPORT FOR EVENT
+|--------------------------------------------------------------------------
+|
+| Creates a sport and links it to an event.
+|
 """
+
 
 @sport_bp.route(
-    "/api/events/<int:event_id>/sports",
-    methods=["POST"]
+
+    '/events/<int:event_id>/sports',
+
+    methods=['POST']
 )
-def add_sport_to_event(event_id):
+def create_event_sport(event_id):
 
-    event = Event.query.get(event_id)
+    try:
 
-    if not event:
+        event = Event.query.get(event_id)
 
-        return error_response(
-            "Event not found.",
-            404
+        if not event:
+
+            return error_response(
+
+                message='Event not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        if not payload:
+
+            return error_response(
+
+                message='Request body is required.',
+
+                status_code=400
+            )
+
+        sport_name = payload.get(
+            'sport_name'
         )
 
-    data = request_data()
-
-    missing = missing_fields(
-        data,
-        ["sport_id"]
-    )
-
-    if missing:
-
-        return error_response(
-            "Required fields are missing.",
-            400,
-            missing
+        scoring_type_id = payload.get(
+            'scoring_type_id'
         )
 
-    sport_id, error = parse_int(
-        data["sport_id"],
-        "sport_id"
-    )
+        """
+        ----------------------------------------------------------------------
+        VALIDATION
+        ----------------------------------------------------------------------
+        """
 
-    if error:
+        validation_errors = {}
 
-        return error_response(
-            "Invalid sport data.",
-            400,
-            [error]
+        if not sport_name:
+
+            validation_errors[
+                'sport_name'
+            ] = [
+
+                'Sport name is required.'
+            ]
+
+        if not scoring_type_id:
+
+            validation_errors[
+                'scoring_type_id'
+            ] = [
+
+                'Scoring type is required.'
+            ]
+
+        if validation_errors:
+
+            return error_response(
+
+                message='Validation failed.',
+
+                errors=validation_errors,
+
+                status_code=400
+            )
+
+        """
+        ----------------------------------------------------------------------
+        CREATE SPORT
+        ----------------------------------------------------------------------
+        """
+
+        sport = Sport(
+
+            sport_name=sport_name,
+
+            scoring_type_id=scoring_type_id
         )
 
-    sport = Sport.query.get(sport_id)
+        db.session.add(sport)
 
-    if not sport:
+        db.session.flush()
 
-        return error_response(
-            "Sport not found.",
-            404
+        """
+        ----------------------------------------------------------------------
+        LINK SPORT TO EVENT
+        ----------------------------------------------------------------------
+        """
+
+        event_sport = EventSport(
+
+            event_id=event_id,
+
+            sport_id=sport.sport_id
         )
 
-    existing = EventSport.query.filter_by(
+        db.session.add(event_sport)
 
-        event_id=event_id,
+        db.session.commit()
 
-        sport_id=sport_id
+        return success_response(
 
-    ).first()
+            data={
 
-    if existing:
+                **sport.to_dict(),
+
+                'event_sport_id':
+                    event_sport.event_sport_id
+            },
+
+            message='Sport created successfully.',
+
+            status_code=201
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
 
         return error_response(
 
-            "Sport already exists in this event.",
+            message='Failed to create sport.',
 
-            409
+            errors=[str(e)],
+
+            status_code=500
         )
-
-    event_sport = EventSport(
-
-        event_id=event_id,
-
-        sport_id=sport_id
-    )
-
-    db.session.add(event_sport)
-
-    db.session.commit()
-
-    return success_response(
-
-        event_sport.to_dict(),
-
-        "Sport added to event successfully.",
-
-        201
-    )
 
 
 """
-------------------------------------------------------------------------------
-DELETE EVENT SPORT
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| UPDATE SPORT
+|--------------------------------------------------------------------------
+|
+| Updates an existing sport.
+|
 """
+
 
 @sport_bp.route(
-    "/api/event-sports/<int:event_sport_id>",
-    methods=["DELETE"]
+
+    '/sports/<int:sport_id>',
+
+    methods=['PUT']
 )
-def delete_event_sport(event_sport_id):
+def update_sport(sport_id):
 
-    event_sport = EventSport.query.get(
-        event_sport_id
-    )
+    try:
 
-    if not event_sport:
+        sport = Sport.query.get(sport_id)
 
-        return error_response(
-            "Event sport not found.",
-            404
+        if not sport:
+
+            return error_response(
+
+                message='Sport not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        if not payload:
+
+            return error_response(
+
+                message='Request body is required.',
+
+                status_code=400
+            )
+
+        sport.sport_name = payload.get(
+
+            'sport_name',
+
+            sport.sport_name
         )
 
-    db.session.delete(event_sport)
+        sport.scoring_type_id = payload.get(
 
-    db.session.commit()
+            'scoring_type_id',
 
-    return success_response(
+            sport.scoring_type_id
+        )
 
-        {"event_sport_id": event_sport_id},
+        db.session.commit()
 
-        "Event sport removed successfully."
-    )
+        return success_response(
+
+            data=sport.to_dict(),
+
+            message='Sport updated successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to update sport.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
+
+
+"""
+|--------------------------------------------------------------------------
+| DELETE SPORT
+|--------------------------------------------------------------------------
+|
+| Deletes sport-event relationship and sport.
+|
+"""
+
+
+@sport_bp.route(
+
+    '/sports/<int:sport_id>',
+
+    methods=['DELETE']
+)
+def delete_sport(sport_id):
+
+    try:
+
+        sport = Sport.query.get(sport_id)
+
+        if not sport:
+
+            return error_response(
+
+                message='Sport not found.',
+
+                status_code=404
+            )
+
+        EventSport.query.filter_by(
+
+            sport_id=sport_id
+
+        ).delete()
+
+        db.session.delete(sport)
+
+        db.session.commit()
+
+        return success_response(
+
+            message='Sport deleted successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to delete sport.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )

@@ -3,7 +3,7 @@ from app.extensions import db
 
 class ScoringType(db.Model):
 
-    __tablename__ = 'scoring_types'
+    __tablename__ = "scoring_types"
 
     """
     --------------------------------------------------------------------------
@@ -12,7 +12,9 @@ class ScoringType(db.Model):
     """
 
     scoring_type_id = db.Column(
+
         db.Integer,
+
         primary_key=True
     )
 
@@ -22,14 +24,19 @@ class ScoringType(db.Model):
     --------------------------------------------------------------------------
     """
 
-    type = db.Column(
+    scoring_name = db.Column(
+
         db.String(100),
+
         nullable=False,
+
         unique=True
     )
 
     description = db.Column(
+
         db.Text,
+
         nullable=True
     )
 
@@ -40,8 +47,12 @@ class ScoringType(db.Model):
     """
 
     sports = db.relationship(
-        'Sport',
-        back_populates='scoring_type'
+
+        "Sport",
+
+        back_populates="scoring_type",
+
+        lazy="selectin"
     )
 
     """
@@ -53,12 +64,26 @@ class ScoringType(db.Model):
     def to_dict(self):
 
         return {
-            'scoring_type_id':
-            self.scoring_type_id,
 
-            'type':
-            self.type,
+            "scoring_type_id":
+                self.scoring_type_id,
 
-            'description':
-            self.description
+            "scoring_name":
+                self.scoring_name,
+
+            "description":
+                self.description
         }
+
+    """
+    --------------------------------------------------------------------------
+    STRING REPRESENTATION
+    --------------------------------------------------------------------------
+    """
+
+    def __repr__(self):
+
+        return (
+            f"<ScoringType "
+            f"{self.scoring_name}>"
+        )

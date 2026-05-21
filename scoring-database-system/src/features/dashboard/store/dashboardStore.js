@@ -38,28 +38,15 @@ export const useDashboardStore = defineStore(
 
     const sports = ref([])
 
-let eventContextStore = null
-
-function getEventContextStore() {
-  if (!eventContextStore) {
-    eventContextStore = useEventContextStore()
-  }
-  return eventContextStore
-}
+    const games = ref([])
 
     const scores = ref([])
 
     const statistics = ref({})
 
-const currentEvent =
-  computed(() =>
-    getEventContextStore().currentEvent
-  )
+    const loading = ref(false)
 
-const currentEventId =
-  computed(() =>
-    getEventContextStore().currentEventId
-  )
+    const error = ref(null)
 
     /*
     --------------------------------------------------------------------------
@@ -132,7 +119,7 @@ const currentEventId =
 
           /*
           --------------------------------------------------------------------
-          NORMALIZED BACKEND RESPONSE
+          NORMALIZED RESPONSE
           --------------------------------------------------------------------
           */
 

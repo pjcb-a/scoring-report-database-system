@@ -1,152 +1,291 @@
-from flask import Blueprint
+from flask import Blueprint, request
 
 from app.extensions import db
 
-from app.models.game import Game
+from app.models.event import Event
 from app.models.judge import Judge
 
-from app.routes.utils import (
+from app.utils.responses import (
 
-    error_response,
+    success_response,
 
-    missing_fields,
-
-    parse_float,
-
-    parse_int,
-
-    request_data,
-
-    success_response
+    error_response
 )
 
 
 judge_bp = Blueprint(
 
-    "judge_bp",
+    'judge_bp',
 
     __name__
 )
 
 
 """
-------------------------------------------------------------------------------
-GET JUDGES OF GAME
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| GET JUDGES BY EVENT
+|--------------------------------------------------------------------------
 """
+
 
 @judge_bp.route(
 
-    "/api/games/<int:game_id>/judges",
+    '/events/<int:event_id>/judges',
 
-    methods=["GET"]
+    methods=['GET']
 )
-def get_judges_by_game(game_id):
+def get_event_judges(event_id):
 
-    game = Game.query.get(game_id)
+    try:
 
-    if not game:
+        event = Event.query.get(event_id)
+
+        if not event:
+
+            return error_response(
+
+                message='Event not found.',
+
+                status_code=404
+            )
+
+        judges = Judge.query.filter_by(
+
+            event_id=event_id
+
+        ).all()
+
+        data = [
+
+            judge.to_dict()
+
+            for judge in judges
+        ]
+
+        return success_response(
+
+            data=data,
+
+            message='Judges fetched successfully.'
+        )
+
+    except Exception as e:
 
         return error_response(
 
-            "Game not found.",
+            message='Failed to fetch judges.',
 
-            404
+            errors=[str(e)],
+
+            status_code=500
         )
 
-    judges = Judge.query.filter_by(
-
-        game_id=game_id
-
-    ).all()
-
-    return success_response(
-
-        [judge.to_dict() for judge in judges],
-
-        "Judges fetched successfully."
-    )
-
 
 """
-------------------------------------------------------------------------------
-CREATE JUDGE SCORE
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| CREATE JUDGE
+|--------------------------------------------------------------------------
 """
+
 
 @judge_bp.route(
 
-    "/api/games/<int:game_id>/judges",
+    '/events/<int:event_id>/judges',
 
-    methods=["POST"]
+    methods=['POST']
 )
-def create_judge(game_id):
+def create_judge(event_id):
 
-    game = Game.query.get(game_id)
+    try:
 
-    if not game:
+        event = Event.query.get(event_id)
+
+        if not event:
+
+            return error_response(
+
+                message='Event not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        if not payload:
+
+            return error_response(
+
+                message='Request body is required.',
+
+                status_code=400
+            )
+
+        judge_name = payload.get(
+            'judge_name'
+        )
+
+        validation_errors = {}
+
+        if not judge_name:
+
+            validation_errors[
+                'judge_name'
+            ] = [
+
+                'Judge name is required.'
+            ]
+
+        if validation_errors:
+
+            return error_response(
+
+                message='Validation failed.',
+
+                errors=validation_errors,
+
+                status_code=400
+            )
+
+        judge = Judge(
+
+            judge_name=judge_name,
+
+            event_id=event_id
+        )
+
+        db.session.add(judge)
+
+        db.session.commit()
+
+        return success_response(
+
+            data=judge.to_dict(),
+
+            message='Judge created successfully.',
+
+            status_code=201
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
 
         return error_response(
 
-            "Game not found.",
+            message='Failed to create judge.',
 
-            404
+            errors=[str(e)],
+
+            status_code=500
         )
 
-    data = request_data()
 
-    missing = missing_fields(
+"""
+|--------------------------------------------------------------------------
+| UPDATE JUDGE
+|--------------------------------------------------------------------------
+"""
 
-        data,
 
-        ["raw_score"]
-    )
+@judge_bp.route(
 
-    if missing:
+    '/judges/<int:judge_id>',
+
+    methods=['PUT']
+)
+def update_judge(judge_id):
+
+    try:
+
+        judge = Judge.query.get(judge_id)
+
+        if not judge:
+
+            return error_response(
+
+                message='Judge not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        judge.judge_name = payload.get(
+
+            'judge_name',
+
+            judge.judge_name
+        )
+
+        db.session.commit()
+
+        return success_response(
+
+            data=judge.to_dict(),
+
+            message='Judge updated successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
 
         return error_response(
 
-            "Required fields are missing.",
+            message='Failed to update judge.',
 
-            400,
+            errors=[str(e)],
 
-            missing
+            status_code=500
         )
 
-    raw_score, error = parse_float(
 
-        data["raw_score"],
+"""
+|--------------------------------------------------------------------------
+| DELETE JUDGE
+|--------------------------------------------------------------------------
+"""
 
-        "raw_score"
-    )
 
-    if error:
+@judge_bp.route(
+
+    '/judges/<int:judge_id>',
+
+    methods=['DELETE']
+)
+def delete_judge(judge_id):
+
+    try:
+
+        judge = Judge.query.get(judge_id)
+
+        if not judge:
+
+            return error_response(
+
+                message='Judge not found.',
+
+                status_code=404
+            )
+
+        db.session.delete(judge)
+
+        db.session.commit()
+
+        return success_response(
+
+            message='Judge deleted successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
 
         return error_response(
 
-            "Invalid judge data.",
+            message='Failed to delete judge.',
 
-            400,
+            errors=[str(e)],
 
-            [error]
+            status_code=500
         )
-
-    judge = Judge(
-
-        game_id=game_id,
-
-        raw_score=raw_score
-    )
-
-    db.session.add(judge)
-
-    db.session.commit()
-
-    return success_response(
-
-        judge.to_dict(),
-
-        "Judge score created successfully.",
-
-        201
-    )

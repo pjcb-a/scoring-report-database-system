@@ -3,7 +3,7 @@ from app.extensions import db
 
 class Sport(db.Model):
 
-    __tablename__ = 'sports'
+    __tablename__ = "sports"
 
     """
     --------------------------------------------------------------------------
@@ -12,7 +12,9 @@ class Sport(db.Model):
     """
 
     sport_id = db.Column(
+
         db.Integer,
+
         primary_key=True
     )
 
@@ -23,11 +25,16 @@ class Sport(db.Model):
     """
 
     scoring_type_id = db.Column(
+
         db.Integer,
+
         db.ForeignKey(
-            'scoring_types.scoring_type_id',
-            ondelete='RESTRICT'
+
+            "scoring_types.scoring_type_id",
+
+            ondelete="RESTRICT"
         ),
+
         nullable=False
     )
 
@@ -38,9 +45,10 @@ class Sport(db.Model):
     """
 
     sport_name = db.Column(
+
         db.String(150),
-        nullable=False,
-        unique=True
+
+        nullable=False
     )
 
     """
@@ -50,20 +58,19 @@ class Sport(db.Model):
     """
 
     scoring_type = db.relationship(
-        'ScoringType',
-        back_populates='sports'
+
+        "ScoringType",
+
+        back_populates="sports"
     )
 
     event_sports = db.relationship(
-        'EventSport',
-        back_populates='sport',
-        cascade='all, delete-orphan'
-    )
 
-    criteria = db.relationship(
-        'Criteria',
-        back_populates='sport',
-        cascade='all, delete-orphan'
+        "EventSport",
+
+        back_populates="sport",
+
+        cascade="all, delete-orphan"
     )
 
     """
@@ -76,17 +83,30 @@ class Sport(db.Model):
 
         return {
 
-            'sport_id':
-            self.sport_id,
+            "sport_id":
+                self.sport_id,
 
-            'sport_name':
-            self.sport_name,
+            "sport_name":
+                self.sport_name,
 
-            'scoring_type_id':
-            self.scoring_type_id,
+            "scoring_type_id":
+                self.scoring_type_id,
 
-            'scoring_type':
-            self.scoring_type.type
-            if self.scoring_type
-            else None
+            "scoring_type":
+                self.scoring_type.scoring_name
+                if self.scoring_type
+                else None
         }
+
+    """
+    --------------------------------------------------------------------------
+    STRING REPRESENTATION
+    --------------------------------------------------------------------------
+    """
+
+    def __repr__(self):
+
+        return (
+            f"<Sport "
+            f"{self.sport_name}>"
+        )

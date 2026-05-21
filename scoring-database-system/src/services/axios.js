@@ -1,4 +1,3 @@
-import api from './api'
 import axios from 'axios'
 
 import {
@@ -10,8 +9,18 @@ import {
 
 /*
 |--------------------------------------------------------------------------
-| AXIOS INSTANCE
+| CENTRALIZED AXIOS INSTANCE
 |--------------------------------------------------------------------------
+|
+| Single API layer for the entire application.
+|
+| Responsibilities:
+| - request handling
+| - response normalization
+| - error handling
+| - timeout management
+| - interceptor architecture
+|
 */
 
 const api = axios.create({
@@ -38,9 +47,9 @@ const api = axios.create({
 | REQUEST INTERCEPTOR
 |--------------------------------------------------------------------------
 |
-| Future-ready for:
+| Future-ready:
 | - auth tokens
-| - request metadata
+| - request tracing
 | - logging
 |
 */
@@ -51,7 +60,7 @@ api.interceptors.request.use(
 
     /*
     ------------------------------------------------------------------------
-    AUTH TOKEN PLACEHOLDER
+    FUTURE AUTH SUPPORT
     ------------------------------------------------------------------------
     */
 
@@ -78,9 +87,10 @@ api.interceptors.request.use(
 |--------------------------------------------------------------------------
 |
 | Centralized:
-| - server errors
-| - network failures
-| - unauthorized access
+| - backend errors
+| - validation errors
+| - network errors
+| - timeout handling
 | - toast notifications
 |
 */
@@ -89,7 +99,13 @@ api.interceptors.response.use(
 
   response => {
 
-    return response
+    /*
+    ------------------------------------------------------------------------
+    NORMALIZED SUCCESS RESPONSE
+    ------------------------------------------------------------------------
+    */
+
+    return response.data
   },
 
   error => {
@@ -99,7 +115,7 @@ api.interceptors.response.use(
 
     /*
     ------------------------------------------------------------------------
-    SERVER RESPONSE ERRORS
+    SERVER RESPONSE ERROR
     ------------------------------------------------------------------------
     */
 
@@ -118,33 +134,17 @@ api.interceptors.response.use(
 
       /*
       ----------------------------------------------------------------------
-      UNAUTHORIZED
+      BAD REQUEST
       ----------------------------------------------------------------------
       */
 
-      if (status === 401) {
+      if (status === 400) {
 
         toastStore.showToast(
 
-          'Unauthorized access.',
+          message,
 
-          'error'
-        )
-      }
-
-      /*
-      ----------------------------------------------------------------------
-      FORBIDDEN
-      ----------------------------------------------------------------------
-      */
-
-      else if (status === 403) {
-
-        toastStore.showToast(
-
-          'Access forbidden.',
-
-          'error'
+          'warning'
         )
       }
 
@@ -166,23 +166,23 @@ api.interceptors.response.use(
 
       /*
       ----------------------------------------------------------------------
-      VALIDATION / BAD REQUEST
+      INTERNAL SERVER ERROR
       ----------------------------------------------------------------------
       */
 
-      else if (status === 400) {
+      else if (status >= 500) {
 
         toastStore.showToast(
 
-          message,
+          'Internal server error.',
 
-          'warning'
+          'error'
         )
       }
 
       /*
       ----------------------------------------------------------------------
-      INTERNAL SERVER ERROR
+      GENERIC API ERROR
       ----------------------------------------------------------------------
       */
 
@@ -199,7 +199,7 @@ api.interceptors.response.use(
 
     /*
     ------------------------------------------------------------------------
-    NETWORK / CONNECTION ERROR
+    NETWORK FAILURE
     ------------------------------------------------------------------------
     */
 
@@ -207,7 +207,7 @@ api.interceptors.response.use(
 
       toastStore.showToast(
 
-        'Unable to connect to the server.',
+        'Unable to connect to server.',
 
         'error'
       )
@@ -215,7 +215,7 @@ api.interceptors.response.use(
 
     /*
     ------------------------------------------------------------------------
-    UNKNOWN ERROR
+    UNKNOWN FAILURE
     ------------------------------------------------------------------------
     */
 

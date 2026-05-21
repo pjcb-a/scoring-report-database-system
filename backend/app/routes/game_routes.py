@@ -1,458 +1,434 @@
-from flask import Blueprint
+from flask import Blueprint, request
 
 from app.extensions import db
 
-from app.models.event_sport import EventSport
 from app.models.game import Game
+from app.models.event import Event
+from app.models.team import Team
+from app.models.event_sport import EventSport
 
-from app.routes.utils import (
-    clean_string,
-    error_response,
-    missing_fields,
-    parse_datetime,
-    parse_int,
-    request_data,
-    success_response
+from app.utils.responses import (
+
+    success_response,
+
+    error_response
 )
 
 
 game_bp = Blueprint(
-    "game_bp",
+
+    'game_bp',
+
     __name__
 )
 
 
 """
-------------------------------------------------------------------------------
-GET GAMES BY EVENT
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| GET GAMES BY EVENT
+|--------------------------------------------------------------------------
+|
+| Returns all games under a specific event.
+|
 """
+
 
 @game_bp.route(
-    "/api/events/<int:event_id>/games",
-    methods=["GET"]
+
+    '/events/<int:event_id>/games',
+
+    methods=['GET']
 )
-def get_games_by_event(event_id):
+def get_event_games(event_id):
 
-    games = Game.query.join(
-        EventSport
-    ).filter(
+    try:
 
-        EventSport.event_id == event_id
+        event = Event.query.get(event_id)
 
-    ).order_by(
-        Game.start_date.desc()
-    ).all()
-
-    return success_response(
-
-        [game.to_dict() for game in games],
-
-        "Games fetched successfully."
-    )
-
-
-"""
-------------------------------------------------------------------------------
-GET SINGLE GAME
-------------------------------------------------------------------------------
-"""
-
-@game_bp.route(
-    "/api/games/<int:game_id>",
-    methods=["GET"]
-)
-def get_game(game_id):
-
-    game = Game.query.get(game_id)
-
-    if not game:
-
-        return error_response(
-            "Game not found.",
-            404
-        )
-
-    return success_response(
-
-        game.to_dict(),
-
-        "Game fetched successfully."
-    )
-
-
-"""
-------------------------------------------------------------------------------
-CREATE GAME
-------------------------------------------------------------------------------
-"""
-
-@game_bp.route(
-    "/api/games",
-    methods=["POST"]
-)
-def create_game():
-
-    data = request_data()
-
-    missing = missing_fields(
-
-        data,
-
-        [
-            "event_sport_id",
-            "start_date",
-            "game_status"
-        ]
-    )
-
-    if missing:
-
-        return error_response(
-
-            "Required fields are missing.",
-
-            400,
-
-            missing
-        )
-
-    """
-    --------------------------------------------------------------------------
-    VALIDATE EVENT SPORT
-    --------------------------------------------------------------------------
-    """
-
-    event_sport_id, event_sport_error = parse_int(
-
-        data["event_sport_id"],
-
-        "event_sport_id"
-    )
-
-    start_date, start_error = parse_datetime(
-
-        data["start_date"],
-
-        "start_date"
-    )
-
-    end_date, end_error = parse_datetime(
-
-        data.get("end_date"),
-
-        "end_date"
-    )
-
-    errors = [
-
-        error
-
-        for error in [
-
-            event_sport_error,
-            start_error,
-            end_error
-
-        ]
-
-        if error
-    ]
-
-    if errors:
-
-        return error_response(
-
-            "Invalid game data.",
-
-            400,
-
-            errors
-        )
-
-    """
-    --------------------------------------------------------------------------
-    DATE VALIDATION
-    --------------------------------------------------------------------------
-    """
-
-    if end_date and end_date < start_date:
-
-        return error_response(
-
-            "end_date cannot be earlier than start_date.",
-
-            400
-        )
-
-    """
-    --------------------------------------------------------------------------
-    ENSURE EVENT SPORT EXISTS
-    --------------------------------------------------------------------------
-    """
-
-    event_sport = EventSport.query.get(
-        event_sport_id
-    )
-
-    if not event_sport:
-
-        return error_response(
-
-            "Event sport not found.",
-
-            404
-        )
-
-    """
-    --------------------------------------------------------------------------
-    CREATE GAME
-    --------------------------------------------------------------------------
-    """
-
-    game = Game(
-
-        event_sport_id=event_sport_id,
-
-        start_date=start_date,
-
-        end_date=end_date,
-
-        venue_name=clean_string(
-            data.get("venue_name")
-        ),
-
-        game_status=clean_string(
-            data["game_status"]
-        ),
-
-        round=clean_string(
-            data.get("round")
-        )
-    )
-
-    db.session.add(game)
-
-    db.session.commit()
-
-    return success_response(
-
-        game.to_dict(),
-
-        "Game created successfully.",
-
-        201
-    )
-
-
-"""
-------------------------------------------------------------------------------
-UPDATE GAME
-------------------------------------------------------------------------------
-"""
-
-@game_bp.route(
-    "/api/games/<int:game_id>",
-    methods=["PUT"]
-)
-def update_game(game_id):
-
-    game = Game.query.get(game_id)
-
-    if not game:
-
-        return error_response(
-            "Game not found.",
-            404
-        )
-
-    data = request_data()
-
-    """
-    --------------------------------------------------------------------------
-    EVENT SPORT
-    --------------------------------------------------------------------------
-    """
-
-    if "event_sport_id" in data:
-
-        event_sport_id, error = parse_int(
-
-            data["event_sport_id"],
-
-            "event_sport_id"
-        )
-
-        if error:
+        if not event:
 
             return error_response(
 
-                "Invalid game data.",
+                message='Event not found.',
 
-                400,
-
-                [error]
+                status_code=404
             )
 
-        event_sport = EventSport.query.get(
-            event_sport_id
+        games = Game.query.filter_by(
+
+            event_id=event_id
+
+        ).all()
+
+        data = [
+
+            game.to_dict()
+
+            for game in games
+        ]
+
+        return success_response(
+
+            data=data,
+
+            message='Games fetched successfully.'
         )
+
+    except Exception as e:
+
+        return error_response(
+
+            message='Failed to fetch games.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
+
+
+"""
+|--------------------------------------------------------------------------
+| CREATE GAME
+|--------------------------------------------------------------------------
+|
+| Creates a game under an event.
+|
+"""
+
+
+@game_bp.route(
+
+    '/events/<int:event_id>/games',
+
+    methods=['POST']
+)
+def create_game(event_id):
+
+    try:
+
+        event = Event.query.get(event_id)
+
+        if not event:
+
+            return error_response(
+
+                message='Event not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        if not payload:
+
+            return error_response(
+
+                message='Request body is required.',
+
+                status_code=400
+            )
+
+        event_sport_id = payload.get(
+            'event_sport_id'
+        )
+
+        team_a_id = payload.get(
+            'team_a_id'
+        )
+
+        team_b_id = payload.get(
+            'team_b_id'
+        )
+
+        game_name = payload.get(
+            'game_name'
+        )
+
+        """
+        ----------------------------------------------------------------------
+        VALIDATION
+        ----------------------------------------------------------------------
+        """
+
+        validation_errors = {}
+
+        if not event_sport_id:
+
+            validation_errors[
+                'event_sport_id'
+            ] = [
+
+                'Event sport is required.'
+            ]
+
+        if not team_a_id:
+
+            validation_errors[
+                'team_a_id'
+            ] = [
+
+                'Team A is required.'
+            ]
+
+        if not team_b_id:
+
+            validation_errors[
+                'team_b_id'
+            ] = [
+
+                'Team B is required.'
+            ]
+
+        if not game_name:
+
+            validation_errors[
+                'game_name'
+            ] = [
+
+                'Game name is required.'
+            ]
+
+        if team_a_id == team_b_id:
+
+            validation_errors[
+                'teams'
+            ] = [
+
+                'Teams must be different.'
+            ]
+
+        if validation_errors:
+
+            return error_response(
+
+                message='Validation failed.',
+
+                errors=validation_errors,
+
+                status_code=400
+            )
+
+        """
+        ----------------------------------------------------------------------
+        VALIDATE EVENT SPORT
+        ----------------------------------------------------------------------
+        """
+
+        event_sport = EventSport.query.filter_by(
+
+            event_sport_id=event_sport_id,
+
+            event_id=event_id
+
+        ).first()
 
         if not event_sport:
 
             return error_response(
 
-                "Event sport not found.",
+                message='Invalid event sport.',
 
-                404
+                status_code=400
             )
 
-        game.event_sport_id = event_sport_id
+        """
+        ----------------------------------------------------------------------
+        VALIDATE TEAMS
+        ----------------------------------------------------------------------
+        """
 
-    """
-    --------------------------------------------------------------------------
-    START DATE
-    --------------------------------------------------------------------------
-    """
+        team_a = Team.query.filter_by(
 
-    if "start_date" in data:
+            team_id=team_a_id,
 
-        start_date, error = parse_datetime(
+            event_id=event_id
 
-            data["start_date"],
+        ).first()
 
-            "start_date"
-        )
+        team_b = Team.query.filter_by(
 
-        if error:
+            team_id=team_b_id,
+
+            event_id=event_id
+
+        ).first()
+
+        if not team_a or not team_b:
 
             return error_response(
 
-                "Invalid game data.",
+                message='Invalid teams for this event.',
 
-                400,
-
-                [error]
+                status_code=400
             )
 
-        game.start_date = start_date
+        """
+        ----------------------------------------------------------------------
+        CREATE GAME
+        ----------------------------------------------------------------------
+        """
 
-    """
-    --------------------------------------------------------------------------
-    END DATE
-    --------------------------------------------------------------------------
-    """
+        game = Game(
 
-    if "end_date" in data:
+            event_id=event_id,
 
-        end_date, error = parse_datetime(
+            event_sport_id=event_sport_id,
 
-            data.get("end_date"),
+            team_a_id=team_a_id,
 
-            "end_date"
+            team_b_id=team_b_id,
+
+            game_name=game_name
         )
 
-        if error:
+        db.session.add(game)
 
-            return error_response(
+        db.session.commit()
 
-                "Invalid game data.",
+        return success_response(
 
-                400,
+            data=game.to_dict(),
 
-                [error]
-            )
+            message='Game created successfully.',
 
-        game.end_date = end_date
+            status_code=201
+        )
 
-    """
-    --------------------------------------------------------------------------
-    DATE VALIDATION
-    --------------------------------------------------------------------------
-    """
+    except Exception as e:
 
-    if game.end_date and game.end_date < game.start_date:
+        db.session.rollback()
 
         return error_response(
 
-            "end_date cannot be earlier than start_date.",
+            message='Failed to create game.',
 
-            400
+            errors=[str(e)],
+
+            status_code=500
         )
 
-    """
-    --------------------------------------------------------------------------
-    OPTIONAL FIELDS
-    --------------------------------------------------------------------------
-    """
 
-    if "venue_name" in data:
+"""
+|--------------------------------------------------------------------------
+| UPDATE GAME
+|--------------------------------------------------------------------------
+|
+| Updates a game.
+|
+"""
 
-        game.venue_name = clean_string(
-            data.get("venue_name")
-        )
 
-    if "game_status" in data:
+@game_bp.route(
 
-        game_status = clean_string(
-            data["game_status"]
-        )
+    '/games/<int:game_id>',
 
-        if not game_status:
+    methods=['PUT']
+)
+def update_game(game_id):
+
+    try:
+
+        game = Game.query.get(game_id)
+
+        if not game:
 
             return error_response(
 
-                "game_status is required.",
+                message='Game not found.',
 
-                400
+                status_code=404
             )
 
-        game.game_status = game_status
+        payload = request.get_json()
 
-    if "round" in data:
+        if not payload:
 
-        game.round = clean_string(
-            data.get("round")
+            return error_response(
+
+                message='Request body is required.',
+
+                status_code=400
+            )
+
+        game.game_name = payload.get(
+
+            'game_name',
+
+            game.game_name
         )
 
-    db.session.commit()
+        db.session.commit()
 
-    return success_response(
+        return success_response(
 
-        game.to_dict(),
+            data=game.to_dict(),
 
-        "Game updated successfully."
-    )
+            message='Game updated successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return error_response(
+
+            message='Failed to update game.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
 
 
 """
-------------------------------------------------------------------------------
-DELETE GAME
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| DELETE GAME
+|--------------------------------------------------------------------------
+|
+| Deletes a game.
+|
 """
+
 
 @game_bp.route(
-    "/api/games/<int:game_id>",
-    methods=["DELETE"]
+
+    '/games/<int:game_id>',
+
+    methods=['DELETE']
 )
 def delete_game(game_id):
 
-    game = Game.query.get(game_id)
+    try:
 
-    if not game:
+        game = Game.query.get(game_id)
 
-        return error_response(
-            "Game not found.",
-            404
+        if not game:
+
+            return error_response(
+
+                message='Game not found.',
+
+                status_code=404
+            )
+
+        db.session.delete(game)
+
+        db.session.commit()
+
+        return success_response(
+
+            message='Game deleted successfully.'
         )
 
-    db.session.delete(game)
+    except Exception as e:
 
-    db.session.commit()
+        db.session.rollback()
 
-    return success_response(
+        return error_response(
 
-        {"game_id": game_id},
+            message='Failed to delete game.',
 
-        "Game deleted successfully."
-    )
+            errors=[str(e)],
+
+            status_code=500
+        )

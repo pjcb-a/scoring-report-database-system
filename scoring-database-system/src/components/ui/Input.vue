@@ -1,9 +1,22 @@
 <script setup>
 
-defineProps({
+import {
+
+  computed
+
+} from 'vue'
+
+
+const props = defineProps({
 
   modelValue: {
-    type: [String, Number],
+    type: [
+
+      String,
+
+      Number
+    ],
+
     default: ''
   },
 
@@ -17,53 +30,141 @@ defineProps({
     default: ''
   },
 
+  type: {
+    type: String,
+    default: 'text'
+  },
+
   error: {
     type: String,
     default: ''
   },
 
-  type: {
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+
+  id: {
     type: String,
-    default: 'text'
+    default: ''
+  },
+
+  name: {
+    type: String,
+    default: ''
   }
 })
+
 
 const emit = defineEmits([
   'update:modelValue'
 ])
 
+
+/*
+|--------------------------------------------------------------------------
+| GENERATED INPUT ID
+|--------------------------------------------------------------------------
+|
+| Prevent duplicate ids while supporting accessibility.
+|
+*/
+
+const inputId =
+  computed(() => {
+
+    return (
+
+      props.id
+
+      ||
+
+      props.name
+
+      ||
+
+      `input-${Math.random()
+        .toString(36)
+        .slice(2, 9)}`
+    )
+  })
+
 </script>
 
 <template>
 
-  <div class="input-wrapper">
+  <div class="input-group">
+
+    <!--
+    --------------------------------------------------------------------------
+    LABEL
+    --------------------------------------------------------------------------
+    -->
 
     <label
+
       v-if="label"
+
+      :for="inputId"
+
       class="input-label"
     >
+
       {{ label }}
+
     </label>
 
+    <!--
+    --------------------------------------------------------------------------
+    INPUT
+    --------------------------------------------------------------------------
+    -->
+
     <input
-      :value="modelValue"
+
+      :id="inputId"
+
+      :name="name || inputId"
+
       :type="type"
+
+      :value="modelValue"
+
       :placeholder="placeholder"
+
+      :disabled="disabled"
+
       class="input-field"
-      :class="{ error: error }"
+
+      :class="{
+
+        'input-error': error
+      }"
+
       @input="
+
         emit(
           'update:modelValue',
           $event.target.value
         )
+
       "
-    >
+    />
+
+    <!--
+    --------------------------------------------------------------------------
+    ERROR
+    --------------------------------------------------------------------------
+    -->
 
     <p
       v-if="error"
-      class="input-error"
+      class="input-error-text"
     >
+
       {{ error }}
+
     </p>
 
   </div>
@@ -72,7 +173,7 @@ const emit = defineEmits([
 
 <style scoped>
 
-.input-wrapper {
+.input-group {
 
   display: flex;
 
@@ -81,32 +182,45 @@ const emit = defineEmits([
   gap: 8px;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| LABEL
+|--------------------------------------------------------------------------
+*/
+
 .input-label {
 
-  font-size: 14px;
+  font-weight: 700;
 
-  font-weight: 600;
-
-  color: var(--text-main);
+  color:
+    var(--text-main);
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| INPUT
+|--------------------------------------------------------------------------
+*/
 
 .input-field {
 
-  width: 100%;
+  padding: 12px;
 
-  padding: 12px 14px;
-
-  border-radius: var(--radius-md);
+  border-radius:
+    var(--radius-md);
 
   border:
     1px solid var(--border-color);
 
+  transition:
+    var(--transition-fast);
+
+  font-size: 14px;
+
   background-color:
     var(--white);
-
-  color: var(--text-main);
-
-  transition: var(--transition-fast);
 }
 
 .input-field:focus {
@@ -114,28 +228,33 @@ const emit = defineEmits([
   outline: none;
 
   border-color:
-    var(--adnu-blue-dark);
+    var(--adnu-blue-light);
 
   box-shadow:
-    0 0 0 3px rgba(
-      0,
-      56,
-      168,
-      0.15
-    );
+    0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-.input-field.error {
+
+/*
+|--------------------------------------------------------------------------
+| ERROR
+|--------------------------------------------------------------------------
+*/
+
+.input-error {
 
   border-color:
     var(--adnu-danger);
 }
 
-.input-error {
+.input-error-text {
 
-  font-size: 13px;
+  color:
+    var(--adnu-danger);
 
-  color: var(--adnu-danger);
+  font-size: 12px;
+
+  font-weight: 600;
 }
 
 </style>

@@ -1,4 +1,12 @@
-import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
+
+import {
+
+  computed,
+
+  ref
+
+} from 'vue'
 
 import {
 
@@ -13,140 +21,11 @@ import {
 } from '../services/eventService'
 
 
-/*
-|--------------------------------------------------------------------------
-| STATE
-|--------------------------------------------------------------------------
-*/
+export const useEventStore = defineStore(
 
-const events = ref([])
+  'eventStore',
 
-const loading = ref(false)
-
-const error = ref(null)
-
-
-/*
-|--------------------------------------------------------------------------
-| GETTERS
-|--------------------------------------------------------------------------
-*/
-
-const totalEvents = computed(() => {
-  return events.value.length
-})
-
-const activeEvents = computed(() => {
-
-  return events.value.filter(
-    event => event.status === 'Active'
-  ).length
-})
-
-
-/*
-|--------------------------------------------------------------------------
-| ACTIONS
-|--------------------------------------------------------------------------
-*/
-
-const loadEvents = async () => {
-
-  loading.value = true
-
-  error.value = null
-
-  try {
-
-    events.value = await fetchEvents()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to load events.'
-
-  } finally {
-
-    loading.value = false
-  }
-}
-
-
-const addEvent = async (
-  payload
-) => {
-
-  try {
-
-    await createEvent(payload)
-
-    await loadEvents()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to create event.'
-  }
-}
-
-
-const editEvent = async (
-  eventId,
-  payload
-) => {
-
-  try {
-
-    await updateEvent(
-      eventId,
-      payload
-    )
-
-    await loadEvents()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to update event.'
-  }
-}
-
-
-const removeEvent = async (
-  eventId
-) => {
-
-  try {
-
-    await deleteEvent(eventId)
-
-    await loadEvents()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to delete event.'
-  }
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| STORE EXPORT
-|--------------------------------------------------------------------------
-*/
-
-export function useEventStore() {
-
-  return {
+  () => {
 
     /*
     --------------------------------------------------------------------------
@@ -154,9 +33,11 @@ export function useEventStore() {
     --------------------------------------------------------------------------
     */
 
-    events,
-    loading,
-    error,
+    const events = ref([])
+
+    const loading = ref(false)
+
+    const error = ref(null)
 
     /*
     --------------------------------------------------------------------------
@@ -164,18 +45,243 @@ export function useEventStore() {
     --------------------------------------------------------------------------
     */
 
-    totalEvents,
-    activeEvents,
+    const totalEvents =
+      computed(() => {
+
+        return events.value.length
+      })
+
+    const activeEvents =
+      computed(() => {
+
+        return events.value.filter(
+
+          event =>
+            event.status === 'Active'
+
+        ).length
+      })
 
     /*
     --------------------------------------------------------------------------
-    ACTIONS
+    LOAD EVENTS
     --------------------------------------------------------------------------
     */
 
-    loadEvents,
-    addEvent,
-    editEvent,
-    removeEvent
+    const loadEvents =
+      async () => {
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          const response =
+            await fetchEvents()
+
+          events.value =
+            response.data || []
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.response?.data?.message
+
+            ||
+
+            'Failed to load events.'
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    CREATE EVENT
+    --------------------------------------------------------------------------
+    */
+
+    const createEventAction =
+      async (payload) => {
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          const response =
+            await createEvent(payload)
+
+          /*
+          --------------------------------------------------------------------
+          APPEND NEW EVENT
+          --------------------------------------------------------------------
+          */
+
+          if (response.data) {
+
+            events.value.push(
+              response.data
+            )
+          }
+
+          return response
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.response?.data?.message
+
+            ||
+
+            'Failed to create event.'
+
+          throw err
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    UPDATE EVENT
+    --------------------------------------------------------------------------
+    */
+
+    const editEvent =
+      async (
+
+        eventId,
+
+        payload
+
+      ) => {
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          await updateEvent(
+
+            eventId,
+
+            payload
+          )
+
+          await loadEvents()
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.response?.data?.message
+
+            ||
+
+            'Failed to update event.'
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    DELETE EVENT
+    --------------------------------------------------------------------------
+    */
+
+    const removeEvent =
+      async (eventId) => {
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          await deleteEvent(eventId)
+
+          events.value =
+            events.value.filter(
+
+              event =>
+                event.event_id !== eventId
+            )
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.response?.data?.message
+
+            ||
+
+            'Failed to delete event.'
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    return {
+
+      /*
+      ------------------------------------------------------------------------
+      STATE
+      ------------------------------------------------------------------------
+      */
+
+      events,
+
+      loading,
+
+      error,
+
+      /*
+      ------------------------------------------------------------------------
+      GETTERS
+      ------------------------------------------------------------------------
+      */
+
+      totalEvents,
+
+      activeEvents,
+
+      /*
+      ------------------------------------------------------------------------
+      ACTIONS
+      ------------------------------------------------------------------------
+      */
+
+      loadEvents,
+
+      createEvent:
+        createEventAction,
+
+      editEvent,
+
+      removeEvent
+    }
   }
-}
+)

@@ -22,8 +22,9 @@ defineEmits(['add'])
 
     <PrimaryButton
       @click="$emit('add')"
+      label="Add Event"
+        icon="fas fa-plus"
     >
-      Add Event
     </PrimaryButton>
 
   </div>

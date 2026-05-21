@@ -1,193 +1,359 @@
-from flask import Blueprint
+from flask import Blueprint, request
 
 from app.extensions import db
 
 from app.models.criteria import Criteria
-from app.models.judge import Judge
 from app.models.score_component import ScoreComponent
 
-from app.routes.utils import (
+from app.utils.responses import (
 
-    error_response,
+    success_response,
 
-    missing_fields,
-
-    parse_float,
-
-    parse_int,
-
-    request_data,
-
-    success_response
+    error_response
 )
 
 
 score_component_bp = Blueprint(
 
-    "score_component_bp",
+    'score_component_bp',
 
     __name__
 )
 
 
 """
-------------------------------------------------------------------------------
-GET SCORE COMPONENTS OF JUDGE
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| GET SCORE COMPONENTS
+|--------------------------------------------------------------------------
+|
+| Returns all score components for a criteria.
+|
 """
+
 
 @score_component_bp.route(
 
-    "/api/judges/<int:judge_id>/components",
+    '/criteria/<int:criteria_id>/score-components',
 
-    methods=["GET"]
+    methods=['GET']
 )
-def get_score_components(judge_id):
+def get_score_components(criteria_id):
 
-    judge = Judge.query.get(judge_id)
+    try:
 
-    if not judge:
+        criteria = Criteria.query.get(criteria_id)
 
-        return error_response(
+        if not criteria:
 
-            "Judge not found.",
+            return error_response(
 
-            404
-        )
+                message='Criteria not found.',
 
-    components = ScoreComponent.query.filter_by(
+                status_code=404
+            )
 
-        judge_id=judge_id
+        components = ScoreComponent.query.filter_by(
 
-    ).all()
+            criteria_id=criteria_id
 
-    return success_response(
+        ).all()
 
-        [
+        data = [
+
             component.to_dict()
+
             for component in components
-        ],
+        ]
 
-        "Score components fetched successfully."
-    )
+        return success_response(
+
+            data=data,
+
+            message='Score components fetched successfully.'
+        )
+
+    except Exception as e:
+
+        return error_response(
+
+            message='Failed to fetch score components.',
+
+            errors=[str(e)],
+
+            status_code=500
+        )
 
 
 """
-------------------------------------------------------------------------------
-CREATE SCORE COMPONENT
-------------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| CREATE SCORE COMPONENT
+|--------------------------------------------------------------------------
+|
+| Creates a scoring component under a criteria.
+|
 """
+
 
 @score_component_bp.route(
 
-    "/api/judges/<int:judge_id>/components",
+    '/criteria/<int:criteria_id>/score-components',
 
-    methods=["POST"]
+    methods=['POST']
 )
-def create_score_component(judge_id):
+def create_score_component(criteria_id):
 
-    judge = Judge.query.get(judge_id)
+    try:
 
-    if not judge:
+        criteria = Criteria.query.get(criteria_id)
+
+        if not criteria:
+
+            return error_response(
+
+                message='Criteria not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        if not payload:
+
+            return error_response(
+
+                message='Request body is required.',
+
+                status_code=400
+            )
+
+        component_name = payload.get(
+            'component_name'
+        )
+
+        percentage = payload.get(
+            'percentage'
+        )
+
+        validation_errors = {}
+
+        if not component_name:
+
+            validation_errors[
+                'component_name'
+            ] = [
+
+                'Component name is required.'
+            ]
+
+        if percentage is None:
+
+            validation_errors[
+                'percentage'
+            ] = [
+
+                'Percentage is required.'
+            ]
+
+        if validation_errors:
+
+            return error_response(
+
+                message='Validation failed.',
+
+                errors=validation_errors,
+
+                status_code=400
+            )
+
+        """
+        ----------------------------------------------------------------------
+        VALIDATE TOTAL PERCENTAGE
+        ----------------------------------------------------------------------
+        """
+
+        existing_total = db.session.query(
+
+            db.func.coalesce(
+
+                db.func.sum(
+                    ScoreComponent.percentage
+                ),
+
+                0
+            )
+
+        ).filter_by(
+
+            criteria_id=criteria_id
+
+        ).scalar()
+
+        new_total = existing_total + float(percentage)
+
+        if new_total > 100:
+
+            return error_response(
+
+                message='Total percentage exceeds 100%.',
+
+                status_code=400
+            )
+
+        component = ScoreComponent(
+
+            component_name=component_name,
+
+            percentage=percentage,
+
+            criteria_id=criteria_id
+        )
+
+        db.session.add(component)
+
+        db.session.commit()
+
+        return success_response(
+
+            data=component.to_dict(),
+
+            message='Score component created successfully.',
+
+            status_code=201
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
 
         return error_response(
 
-            "Judge not found.",
+            message='Failed to create score component.',
 
-            404
+            errors=[str(e)],
+
+            status_code=500
         )
 
-    data = request_data()
 
-    missing = missing_fields(
+"""
+|--------------------------------------------------------------------------
+| UPDATE SCORE COMPONENT
+|--------------------------------------------------------------------------
+"""
 
-        data,
 
-        [
-            "criteria_id",
-            "component_score"
-        ]
-    )
+@score_component_bp.route(
 
-    if missing:
+    '/score-components/<int:component_id>',
+
+    methods=['PUT']
+)
+def update_score_component(component_id):
+
+    try:
+
+        component = ScoreComponent.query.get(
+
+            component_id
+        )
+
+        if not component:
+
+            return error_response(
+
+                message='Score component not found.',
+
+                status_code=404
+            )
+
+        payload = request.get_json()
+
+        component.component_name = payload.get(
+
+            'component_name',
+
+            component.component_name
+        )
+
+        component.percentage = payload.get(
+
+            'percentage',
+
+            component.percentage
+        )
+
+        db.session.commit()
+
+        return success_response(
+
+            data=component.to_dict(),
+
+            message='Score component updated successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
 
         return error_response(
 
-            "Required fields are missing.",
+            message='Failed to update score component.',
 
-            400,
+            errors=[str(e)],
 
-            missing
+            status_code=500
         )
 
-    criteria_id, criteria_error = parse_int(
 
-        data["criteria_id"],
+"""
+|--------------------------------------------------------------------------
+| DELETE SCORE COMPONENT
+|--------------------------------------------------------------------------
+"""
 
-        "criteria_id"
-    )
 
-    component_score, score_error = parse_float(
+@score_component_bp.route(
 
-        data["component_score"],
+    '/score-components/<int:component_id>',
 
-        "component_score"
-    )
+    methods=['DELETE']
+)
+def delete_score_component(component_id):
 
-    errors = [
+    try:
 
-        error
+        component = ScoreComponent.query.get(
 
-        for error in [
+            component_id
+        )
 
-            criteria_error,
-            score_error
+        if not component:
 
-        ]
+            return error_response(
 
-        if error
-    ]
+                message='Score component not found.',
 
-    if errors:
+                status_code=404
+            )
+
+        db.session.delete(component)
+
+        db.session.commit()
+
+        return success_response(
+
+            message='Score component deleted successfully.'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
 
         return error_response(
 
-            "Invalid score component data.",
+            message='Failed to delete score component.',
 
-            400,
+            errors=[str(e)],
 
-            errors
+            status_code=500
         )
-
-    criteria = Criteria.query.get(criteria_id)
-
-    if not criteria:
-
-        return error_response(
-
-            "Criteria not found.",
-
-            404
-        )
-
-    component = ScoreComponent(
-
-        judge_id=judge_id,
-
-        criteria_id=criteria_id,
-
-        component_score=component_score
-    )
-
-    db.session.add(component)
-
-    db.session.commit()
-
-    return success_response(
-
-        component.to_dict(),
-
-        "Score component created successfully.",
-
-        201
-    )

@@ -1,4 +1,10 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import {
+
+  createRouter,
+
+  createWebHistory
+
+} from 'vue-router'
 
 import DashboardPage from '@/features/dashboard/pages/DashboardPage.vue'
 import EventPage from '@/features/events/pages/EventPage.vue'
@@ -8,10 +14,14 @@ import GamePage from '@/features/games/pages/GamePage.vue'
 import ScoringPage from '@/features/scoring/pages/ScoringPage.vue'
 import JudgePage from '@/features/judging/pages/JudgePage.vue'
 import ReportsPage from '@/features/reports/pages/ReportsPage.vue'
-
-import { useEventContextStore }
-  from '@/features/events/store/eventContextStore'
+import { useEventContextStore } from '@/features/events/store/eventContextStore'
 import { cancelAllPendingRequests } from '@/services/api'
+
+/*
+|--------------------------------------------------------------------------
+| ROUTES
+|--------------------------------------------------------------------------
+*/
 
 const routes = [
 
@@ -114,6 +124,7 @@ const routes = [
   }
 ]
 
+
 /*
 |--------------------------------------------------------------------------
 | ROUTER INSTANCE
@@ -127,22 +138,39 @@ const router = createRouter({
   routes
 })
 
+
 /*
 |--------------------------------------------------------------------------
 | GLOBAL ROUTE GUARD
 |--------------------------------------------------------------------------
+|
 */
 
-router.beforeEach((to, from, next) => {
-  // Cancel all pending network requests from the previous page/tab
-  cancelAllPendingRequests('Navigated to ' + to.path)
+router.beforeEach((to) => {
+
+  /*
+  --------------------------------------------------------------------------
+  CANCEL PREVIOUS REQUESTS
+  --------------------------------------------------------------------------
+  */
+
+  cancelAllPendingRequests(
+
+    `Navigated to ${to.path}`
+  )
+
+  /*
+  --------------------------------------------------------------------------
+  EVENT CONTEXT
+  --------------------------------------------------------------------------
+  */
 
   const eventContextStore =
     useEventContextStore()
 
   /*
   --------------------------------------------------------------------------
-  CHECK IF ROUTE REQUIRES EVENT CONTEXT
+  ROUTES REQUIRING EVENT
   --------------------------------------------------------------------------
   */
 
@@ -156,11 +184,12 @@ router.beforeEach((to, from, next) => {
 
   ) {
 
-    return next('/events')
+    return '/events'
   }
 
-  next()
+  return true
 })
+
 
 /*
 |--------------------------------------------------------------------------
@@ -168,4 +197,4 @@ router.beforeEach((to, from, next) => {
 |--------------------------------------------------------------------------
 */
 
-export default router
+export default router

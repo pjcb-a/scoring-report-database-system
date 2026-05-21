@@ -3,17 +3,30 @@ from app.extensions import db
 
 class EventSport(db.Model):
 
-    __tablename__ = 'event_sports'
+    __tablename__ = "event_sports"
+
     __table_args__ = (
+
         db.UniqueConstraint(
+
             "event_id",
+
             "sport_id",
-            name="uq_event_sports_event_sport"
+
+            name="uq_event_sport"
         ),
     )
 
+    """
+    --------------------------------------------------------------------------
+    PRIMARY KEY
+    --------------------------------------------------------------------------
+    """
+
     event_sport_id = db.Column(
+
         db.Integer,
+
         primary_key=True
     )
 
@@ -24,14 +37,30 @@ class EventSport(db.Model):
     """
 
     event_id = db.Column(
+
         db.Integer,
-        db.ForeignKey('events.event_id', ondelete='CASCADE'),
+
+        db.ForeignKey(
+
+            "events.event_id",
+
+            ondelete="CASCADE"
+        ),
+
         nullable=False
     )
 
     sport_id = db.Column(
+
         db.Integer,
-        db.ForeignKey('sports.sport_id', ondelete='CASCADE'),
+
+        db.ForeignKey(
+
+            "sports.sport_id",
+
+            ondelete="CASCADE"
+        ),
+
         nullable=False
     )
 
@@ -42,17 +71,23 @@ class EventSport(db.Model):
     """
 
     venue = db.Column(
+
         db.String(150),
+
         nullable=True
     )
 
     schedule = db.Column(
+
         db.DateTime,
+
         nullable=True
     )
 
     status = db.Column(
+
         db.String(50),
+
         nullable=False
     )
 
@@ -63,56 +98,82 @@ class EventSport(db.Model):
     """
 
     event = db.relationship(
-        'Event',
-        back_populates='event_sports'
+
+        "Event",
+
+        back_populates="event_sports"
     )
 
     sport = db.relationship(
-        'Sport',
-        back_populates='event_sports'
+
+        "Sport",
+
+        back_populates="event_sports"
     )
 
     games = db.relationship(
-        'Game',
-        back_populates='event_sport',
-        cascade='all, delete-orphan'
+
+        "Game",
+
+        back_populates="event_sport",
+
+        cascade="all, delete-orphan"
     )
+
+    criteria = db.relationship(
+
+        "Criteria",
+
+        back_populates="event_sport",
+
+        cascade="all, delete-orphan"
+    )
+
+    """
+    --------------------------------------------------------------------------
+    SERIALIZER
+    --------------------------------------------------------------------------
+    """
 
     def to_dict(self):
 
         return {
 
-            'event_sport_id':
-            self.event_sport_id,
+            "event_sport_id":
+                self.event_sport_id,
 
-            'event_id':
-            self.event_id,
+            "event_id":
+                self.event_id,
 
-            'sport_id':
-            self.sport_id,
+            "sport_id":
+                self.sport_id,
 
-            'event':
-            self.event.event_name,
+            "event":
+                self.event.event_name
+                if self.event
+                else None,
 
-            'sport':
-            self.sport.sport_name,
+            "sport":
+                self.sport.sport_name
+                if self.sport
+                else None,
 
-            'sport_name':
-            self.sport.sport_name,
+            "scoring_type":
+                self.sport.scoring_type.scoring_name
+                if (
+                    self.sport
+                    and self.sport.scoring_type
+                )
+                else None,
 
-            'scoring_type':
-            self.sport.scoring_type.type
-            if self.sport and self.sport.scoring_type
-            else None,
+            "venue":
+                self.venue,
 
-            'venue':
-            self.venue,
+            "schedule":
+                self.schedule.isoformat()
+                if self.schedule
+                else None,
 
-            'schedule':
-            self.schedule.isoformat()
-            if self.schedule
-            else None,
-
-            'status':
-            self.status
+            "status":
+                self.status
         }

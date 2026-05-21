@@ -5,6 +5,18 @@ class Judge(db.Model):
 
     __tablename__ = "judges"
 
+    __table_args__ = (
+
+        db.UniqueConstraint(
+
+            "event_id",
+
+            "judge_name",
+
+            name="uq_event_judge_name"
+        ),
+    )
+
     """
     --------------------------------------------------------------------------
     PRIMARY KEY
@@ -12,8 +24,30 @@ class Judge(db.Model):
     """
 
     judge_id = db.Column(
+
         db.Integer,
+
         primary_key=True
+    )
+
+    """
+    --------------------------------------------------------------------------
+    FOREIGN KEY
+    --------------------------------------------------------------------------
+    """
+
+    event_id = db.Column(
+
+        db.Integer,
+
+        db.ForeignKey(
+
+            "events.event_id",
+
+            ondelete="CASCADE"
+        ),
+
+        nullable=False
     )
 
     """
@@ -23,9 +57,10 @@ class Judge(db.Model):
     """
 
     judge_name = db.Column(
+
         db.String(150),
-        nullable=False,
-        unique=True
+
+        nullable=False
     )
 
     """
@@ -34,9 +69,19 @@ class Judge(db.Model):
     --------------------------------------------------------------------------
     """
 
+    event = db.relationship(
+
+        "Event",
+
+        back_populates="judges"
+    )
+
     score_components = db.relationship(
+
         "ScoreComponent",
+
         back_populates="judge",
+
         cascade="all, delete-orphan"
     )
 
@@ -51,21 +96,16 @@ class Judge(db.Model):
         return {
 
             "judge_id":
-            self.judge_id,
+                self.judge_id,
+
+            "event_id":
+                self.event_id,
 
             "judge_name":
-            self.judge_name
+                self.judge_name,
+
+            "event":
+                self.event.event_name
+                if self.event
+                else None
         }
-
-    """
-    --------------------------------------------------------------------------
-    STRING REPRESENTATION
-    --------------------------------------------------------------------------
-    """
-
-    def __repr__(self):
-
-        return (
-            f"<Judge "
-            f"{self.judge_name}>"
-        )
