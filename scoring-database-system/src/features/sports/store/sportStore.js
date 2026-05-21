@@ -3,17 +3,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 import {
-
-  getSports,
-
   getSportsByEvent,
-
-  createSport,
-
   addSportToEvent,
-
   removeEventSport
-
 } from '../services/sportService'
 
 
