@@ -92,7 +92,7 @@ class Game(db.Model):
 
         nullable=False,
 
-        default="Scheduled"
+        default="Win"
     )
 
     round = db.Column(
@@ -184,5 +184,23 @@ class Game(db.Model):
                 self.game_status,
 
             "round":
-                self.round
+                self.round,
+
+            "teams": [
+                {
+                    "team_id":
+                        score.team_id,
+
+                    "team_name":
+                        score.team.team_name
+                        if score.team
+                        else None,
+
+                    "team_color":
+                        score.team.team_color
+                        if score.team
+                        else None
+                }
+                for score in (self.game_scores or [])
+            ]
         }

@@ -1,6 +1,6 @@
 <script setup>
 
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 
 import { useRouter } from 'vue-router'
 
@@ -18,20 +18,12 @@ import {
 
 } from '../store/gameStore'
 
+import GameForm from '../components/GameForm.vue'
 
-/*
-|--------------------------------------------------------------------------
-| ROUTER
-|--------------------------------------------------------------------------
-*/
+import GameCard from '../components/GameCard.vue'
+
 
 const router = useRouter()
-
-/*
-|--------------------------------------------------------------------------
-| EVENT CONTEXT
-|--------------------------------------------------------------------------
-*/
 
 const eventContextStore =
   useEventContextStore()
@@ -43,12 +35,6 @@ const {
 } = storeToRefs(
   eventContextStore
 )
-
-/*
-|--------------------------------------------------------------------------
-| GAME STORE
-|--------------------------------------------------------------------------
-*/
 
 const gameStore =
   useGameStore()
@@ -65,20 +51,9 @@ const {
   gameStore
 )
 
-
-/*
-|--------------------------------------------------------------------------
-| INITIALIZE
-|--------------------------------------------------------------------------
-*/
+const showGameForm = ref(false)
 
 onMounted(async () => {
-
-  /*
-  --------------------------------------------------------------------------
-  VALIDATE EVENT CONTEXT
-  --------------------------------------------------------------------------
-  */
 
   if (!currentEvent.value) {
 
@@ -86,12 +61,6 @@ onMounted(async () => {
 
     return
   }
-
-  /*
-  --------------------------------------------------------------------------
-  LOAD EVENT GAMES
-  --------------------------------------------------------------------------
-  */
 
   await gameStore.loadGames()
 })
@@ -102,46 +71,41 @@ onMounted(async () => {
 
   <section class="game-page">
 
-    <!--
-    ------------------------------------------------------------------------
-    HEADER
-    ------------------------------------------------------------------------
-    -->
-
     <div class="game-page-header">
 
-      <h1 class="game-page-title">
+      <div>
+        <h1>
+          {{ currentEvent?.event_name }}
+        </h1>
 
-        {{ currentEvent?.event_name }}
+        <p>
+          Manage event games.
+        </p>
+      </div>
 
-      </h1>
+      <button
+        class="add-game-btn"
+        @click="showGameForm = true"
+      >
+        <i class="fa-solid fa-plus"></i>
 
-      <p class="game-page-subtitle">
-
-        Event Games
-
-      </p>
+        Create Game
+      </button>
 
     </div>
 
-    <!--
-    ------------------------------------------------------------------------
-    LOADING
-    ------------------------------------------------------------------------
-    -->
+    <GameForm
+      v-if="showGameForm"
+      @close="showGameForm = false"
+      @success="showGameForm = false"
+    />
 
     <div
       v-if="loading"
-      class="game-loading"
+      class="loading-state"
     >
       Loading games...
     </div>
-
-    <!--
-    ------------------------------------------------------------------------
-    ERROR
-    ------------------------------------------------------------------------
-    -->
 
     <div
       v-else-if="error"
@@ -150,48 +114,23 @@ onMounted(async () => {
       {{ error }}
     </div>
 
-    <!--
-    ------------------------------------------------------------------------
-    GAME LIST
-    ------------------------------------------------------------------------
-    -->
+    <div
+      v-else-if="!games.length"
+      class="empty-state"
+    >
+      No games found. Create your first game.
+    </div>
 
     <div
       v-else
       class="game-grid"
     >
 
-      <div
+      <GameCard
         v-for="game in games"
         :key="game.game_id"
-        class="game-card"
-      >
-
-        <h3>
-
-          {{ game.sport_name }}
-
-        </h3>
-
-        <p>
-
-          {{ game.round }}
-
-        </p>
-
-        <p>
-
-          {{ game.game_status }}
-
-        </p>
-
-        <p>
-
-          {{ game.venue_name }}
-
-        </p>
-
-      </div>
+        :game="game"
+      />
 
     </div>
 
@@ -203,34 +142,91 @@ onMounted(async () => {
 
 .game-page {
 
-  padding: 30px;
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 1.5rem;
 }
 
 .game-page-header {
 
-  margin-bottom: 30px;
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
 }
 
-.game-page-title {
+.game-page-header h1 {
 
   font-size: 32px;
 
   font-weight: 800;
 }
 
-.game-page-subtitle {
+.game-page-header p {
 
   margin-top: 6px;
 
   color: var(--text-muted);
 }
 
-.game-loading,
-.game-error {
+.add-game-btn {
 
-  padding: 30px;
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.6rem;
+
+  padding: 0.8rem 1rem;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: #2563eb;
+
+  color: white;
+
+  cursor: pointer;
+
+  font-weight: 600;
+
+  transition: 0.2s ease;
+}
+
+.add-game-btn:hover {
+
+  background: #1d4ed8;
+}
+
+.loading-state,
+.empty-state {
+
+  padding: 2rem;
+
+  border-radius: 12px;
+
+  background: white;
 
   text-align: center;
+
+  color: var(--text-muted);
+}
+
+.game-error {
+
+  padding: 2rem;
+
+  border-radius: 12px;
+
+  background: white;
+
+  text-align: center;
+
+  color: var(--adnu-danger);
 }
 
 .game-grid {
@@ -238,21 +234,9 @@ onMounted(async () => {
   display: grid;
 
   grid-template-columns:
-    repeat(auto-fit, minmax(240px, 1fr));
+    repeat(auto-fill, minmax(280px, 1fr));
 
-  gap: 20px;
-}
-
-.game-card {
-
-  background-color: var(--white);
-
-  border:
-    1px solid var(--border-color);
-
-  border-radius: var(--radius-lg);
-
-  padding: 20px;
+  gap: 1.25rem;
 }
 
 </style>

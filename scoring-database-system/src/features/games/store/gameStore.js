@@ -20,6 +20,8 @@ import {
 
 } from '@/features/events/store/eventContextStore'
 
+import { runAsync } from '@/utils/request'
+
 
 export const useGameStore = defineStore(
 
@@ -27,32 +29,14 @@ export const useGameStore = defineStore(
 
   () => {
 
-    /*
-    --------------------------------------------------------------------------
-    STATE
-    --------------------------------------------------------------------------
-    */
-
     const games = ref([])
 
     const loading = ref(false)
 
     const error = ref(null)
 
-    /*
-    --------------------------------------------------------------------------
-    EVENT CONTEXT
-    --------------------------------------------------------------------------
-    */
-
     const eventContextStore =
       useEventContextStore()
-
-    /*
-    --------------------------------------------------------------------------
-    LOAD GAMES
-    --------------------------------------------------------------------------
-    */
 
     const loadGames = async () => {
 
@@ -62,63 +46,50 @@ export const useGameStore = defineStore(
         return
       }
 
-      loading.value = true
+      await runAsync(
+        { loading, error },
+        async () => {
 
-      error.value = null
+          const response =
+            await getGamesByEvent(
 
-      try {
+              eventContextStore.currentEventId
+            )
 
-        const response =
-          await getGamesByEvent(
-
-            eventContextStore.currentEventId
-          )
-
-        games.value =
-          response.data || []
-
-      } catch (err) {
-
-        console.error(err)
-
-        error.value =
-          err.message ||
-          'Failed to load games.'
-
-      } finally {
-
-        loading.value = false
-      }
+          games.value =
+            response.data || []
+        }
+      )
     }
-
-    /*
-    --------------------------------------------------------------------------
-    CREATE GAME
-    --------------------------------------------------------------------------
-    */
 
     const addGame =
       async (payload) => {
 
-        try {
-
-          await createGame(payload)
-
-          await loadGames()
-
-        } catch (err) {
-
-          console.error(err)
-
-          throw err
+        if (
+          !eventContextStore.currentEventId
+        ) {
+          return
         }
-      }
 
-    /*
-    --------------------------------------------------------------------------
-    UPDATE GAME
-    --------------------------------------------------------------------------
-    */
+        await runAsync(
+          { loading, error },
+          async () => {
+
+            await createGame(
+
+              eventContextStore.currentEventId,
+
+              payload
+            )
+
+            await loadGames()
+          },
+          {
+            showSuccessToast: true,
+            successMessage: 'Game created successfully.'
+          }
+        )
+      }
 
     const editGame =
       async (
@@ -126,70 +97,54 @@ export const useGameStore = defineStore(
         payload
       ) => {
 
-        try {
+        await runAsync(
+          { loading, error },
+          async () => {
 
-          await updateGame(
-            gameId,
-            payload
-          )
+            await updateGame(
+              gameId,
+              payload
+            )
 
-          await loadGames()
-
-        } catch (err) {
-
-          console.error(err)
-
-          throw err
-        }
+            await loadGames()
+          },
+          {
+            showSuccessToast: true,
+            successMessage: 'Game updated successfully.'
+          }
+        )
       }
-
-    /*
-    --------------------------------------------------------------------------
-    DELETE GAME
-    --------------------------------------------------------------------------
-    */
 
     const removeGame =
       async (gameId) => {
 
-        try {
+        await runAsync(
+          { loading, error },
+          async () => {
 
-          await deleteGame(gameId)
+            await deleteGame(gameId)
 
-          games.value =
-            games.value.filter(
+            games.value =
+              games.value.filter(
 
-              game =>
-                game.game_id !== gameId
-            )
-
-        } catch (err) {
-
-          console.error(err)
-
-          throw err
-        }
+                game =>
+                  game.game_id !== gameId
+              )
+          },
+          {
+            showSuccessToast: true,
+            successMessage: 'Game deleted successfully.'
+          }
+        )
       }
 
     return {
-
-      /*
-      ------------------------------------------------------------------------
-      STATE
-      ------------------------------------------------------------------------
-      */
 
       games,
 
       loading,
 
       error,
-
-      /*
-      ------------------------------------------------------------------------
-      METHODS
-      ------------------------------------------------------------------------
-      */
 
       loadGames,
 
