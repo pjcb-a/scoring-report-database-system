@@ -37,6 +37,8 @@ export const useEventStore = defineStore(
 
     const loading = ref(false)
 
+    const saving = ref(false)
+
     const error = ref(null)
 
     /*
@@ -48,11 +50,19 @@ export const useEventStore = defineStore(
     const totalEvents =
       computed(() => {
 
-        return events.value.length
+        return Array.isArray(events.value)
+
+          ? events.value.length
+
+          : 0
       })
 
     const activeEvents =
       computed(() => {
+
+        if (!Array.isArray(events.value)) {
+          return 0
+        }
 
         return events.value.filter(
 
@@ -61,6 +71,22 @@ export const useEventStore = defineStore(
 
         ).length
       })
+
+    /*
+    --------------------------------------------------------------------------
+    NORMALIZE EVENTS
+    --------------------------------------------------------------------------
+    */
+
+    const normalizeEvents =
+      (payload) => {
+
+        if (Array.isArray(payload)) {
+          return payload
+        }
+
+        return []
+      }
 
     /*
     --------------------------------------------------------------------------
@@ -80,8 +106,17 @@ export const useEventStore = defineStore(
           const response =
             await fetchEvents()
 
+          /*
+          --------------------------------------------------------------------
+          NORMALIZED RESPONSE
+          --------------------------------------------------------------------
+          */
+
+          const payload =
+            response?.data?.data
+
           events.value =
-            response.data || []
+            normalizeEvents(payload)
 
         } catch (err) {
 
@@ -94,6 +129,14 @@ export const useEventStore = defineStore(
             ||
 
             'Failed to load events.'
+
+          /*
+          --------------------------------------------------------------------
+          FAIL SAFE
+          --------------------------------------------------------------------
+          */
+
+          events.value = []
 
         } finally {
 
@@ -110,7 +153,17 @@ export const useEventStore = defineStore(
     const createEventAction =
       async (payload) => {
 
-        loading.value = true
+        /*
+        ----------------------------------------------------------------------
+        PREVENT DUPLICATE SUBMITS
+        ----------------------------------------------------------------------
+        */
+
+        if (saving.value) {
+          return
+        }
+
+        saving.value = true
 
         error.value = null
 
@@ -121,18 +174,36 @@ export const useEventStore = defineStore(
 
           /*
           --------------------------------------------------------------------
-          APPEND NEW EVENT
+          NORMALIZED RESPONSE
           --------------------------------------------------------------------
           */
 
-          if (response.data) {
+          const newEvent =
+            response?.data?.data
 
-            events.value.push(
-              response.data
-            )
+          /*
+          --------------------------------------------------------------------
+          ENSURE ARRAY STATE
+          --------------------------------------------------------------------
+          */
+
+          if (!Array.isArray(events.value)) {
+
+            events.value = []
           }
 
-          return response
+          /*
+          --------------------------------------------------------------------
+          APPEND EVENT
+          --------------------------------------------------------------------
+          */
+
+          if (newEvent) {
+
+            events.value.push(newEvent)
+          }
+
+          return newEvent
 
         } catch (err) {
 
@@ -150,7 +221,7 @@ export const useEventStore = defineStore(
 
         } finally {
 
-          loading.value = false
+          saving.value = false
         }
       }
 
@@ -219,6 +290,19 @@ export const useEventStore = defineStore(
 
           await deleteEvent(eventId)
 
+          /*
+          --------------------------------------------------------------------
+          ENSURE ARRAY STATE
+          --------------------------------------------------------------------
+          */
+
+          if (!Array.isArray(events.value)) {
+
+            events.value = []
+
+            return
+          }
+
           events.value =
             events.value.filter(
 
@@ -255,6 +339,8 @@ export const useEventStore = defineStore(
       events,
 
       loading,
+
+      saving,
 
       error,
 

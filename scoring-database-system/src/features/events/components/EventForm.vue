@@ -357,7 +357,7 @@ const submitEvent =
       <PrimaryButton
 
         label="Add Event"
-
+        type="button"
         icon="fas fa-plus"
 
         :loading="saving"
