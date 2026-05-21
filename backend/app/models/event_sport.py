@@ -88,7 +88,9 @@ class EventSport(db.Model):
 
         db.String(50),
 
-        nullable=False
+        nullable=False,
+
+        default="Upcoming"
     )
 
     """

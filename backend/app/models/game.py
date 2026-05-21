@@ -90,7 +90,9 @@ class Game(db.Model):
 
         db.String(50),
 
-        nullable=False
+        nullable=False,
+
+        default="Scheduled"
     )
 
     round = db.Column(

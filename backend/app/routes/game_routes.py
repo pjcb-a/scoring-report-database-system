@@ -144,6 +144,11 @@ def create_game(event_id):
             'game_name'
         )
 
+        game_status = payload.get(
+            'game_status',
+            'Scheduled'
+        )
+
         """
         ----------------------------------------------------------------------
         VALIDATION
@@ -278,7 +283,9 @@ def create_game(event_id):
 
             team_b_id=team_b_id,
 
-            game_name=game_name
+            game_name=game_name,
+
+            game_status=game_status
         )
 
         db.session.add(game)

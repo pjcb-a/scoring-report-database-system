@@ -201,7 +201,9 @@ def create_event_sport(event_id):
 
             event_id=event_id,
 
-            sport_id=sport_id
+            sport_id=sport_id,
+
+            status="Upcoming"
         )
 
         db.session.add(event_sport)
