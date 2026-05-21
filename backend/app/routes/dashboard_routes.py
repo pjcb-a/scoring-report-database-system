@@ -1,15 +1,17 @@
 from flask import Blueprint
 
-from sqlalchemy import func
+from app.models import (
 
-from app.extensions import db
+    Event,
 
-from app.models.event import Event
-from app.models.team import Team
-from app.models.game import Game
-from app.models.sport import Sport
-from app.models.event_sport import EventSport
-from app.models.game_score import GameScore
+    Team,
+
+    Game,
+
+    GameScore,
+
+    EventSport
+)
 
 from app.utils.responses import (
 
@@ -21,7 +23,7 @@ from app.utils.responses import (
 
 dashboard_bp = Blueprint(
 
-    'dashboard_bp',
+    'dashboard',
 
     __name__
 )
@@ -31,9 +33,6 @@ dashboard_bp = Blueprint(
 |--------------------------------------------------------------------------
 | EVENT DASHBOARD SUMMARY
 |--------------------------------------------------------------------------
-|
-| Aggregated event dashboard data.
-|
 """
 
 
@@ -43,9 +42,15 @@ dashboard_bp = Blueprint(
 
     methods=['GET']
 )
-def get_event_dashboard(event_id):
+def get_dashboard_summary(event_id):
 
     try:
+
+        """
+        ----------------------------------------------------------------------
+        VALIDATE EVENT
+        ----------------------------------------------------------------------
+        """
 
         event = Event.query.get(event_id)
 
@@ -60,160 +65,96 @@ def get_event_dashboard(event_id):
 
         """
         ----------------------------------------------------------------------
-        TOTALS
+        FETCH EVENT DATA
         ----------------------------------------------------------------------
         """
 
-        total_teams = Team.query.filter_by(
+        sports =
+            EventSport.query.filter_by(
 
-            event_id=event_id
+                event_id=event_id
+            ).all()
 
-        ).count()
+        teams =
+            Team.query.filter_by(
 
-        total_games = Game.query.filter_by(
+                event_id=event_id
+            ).all()
 
-            event_id=event_id
+        games =
+            Game.query.filter_by(
 
-        ).count()
+                event_id=event_id
+            ).all()
 
-        total_sports = EventSport.query.filter_by(
+        scores =
+            GameScore.query.filter_by(
 
-            event_id=event_id
-
-        ).count()
-
-        total_scores = GameScore.query.filter_by(
-
-            event_id=event_id
-
-        ).count()
-
-        """
-        ----------------------------------------------------------------------
-        RECENT GAMES
-        ----------------------------------------------------------------------
-        """
-
-        recent_games = Game.query.filter_by(
-
-            event_id=event_id
-
-        ).order_by(
-
-            Game.game_id.desc()
-
-        ).limit(5).all()
+                event_id=event_id
+            ).all()
 
         """
         ----------------------------------------------------------------------
-        TOP TEAMS
+        DASHBOARD SUMMARY
         ----------------------------------------------------------------------
         """
 
-        top_teams = db.session.query(
+        summary = {
 
-            Team.team_id,
-
-            Team.team_name,
-
-            func.coalesce(
-                func.sum(GameScore.score_value),
-                0
-            ).label('total_score')
-
-        ).outerjoin(
-
-            GameScore,
-
-            Team.team_id == GameScore.team_id
-
-        ).filter(
-
-            Team.event_id == event_id
-
-        ).group_by(
-
-            Team.team_id
-
-        ).order_by(
-
-            func.sum(
-                GameScore.score_value
-            ).desc()
-
-        ).limit(5).all()
-
-        """
-        ----------------------------------------------------------------------
-        FORMAT TOP TEAMS
-        ----------------------------------------------------------------------
-        """
-
-        formatted_top_teams = [
-
-            {
-
-                'team_id':
-                    team.team_id,
-
-                'team_name':
-                    team.team_name,
-
-                'total_score':
-                    float(team.total_score or 0)
-            }
-
-            for team in top_teams
-        ]
-
-        """
-        ----------------------------------------------------------------------
-        RESPONSE
-        ----------------------------------------------------------------------
-        """
-
-        dashboard_data = {
+            'event':
+                event.to_dict(),
 
             'statistics': {
 
+                'total_sports':
+                    len(sports),
+
                 'total_teams':
-                    total_teams,
+                    len(teams),
 
                 'total_games':
-                    total_games,
-
-                'total_sports':
-                    total_sports,
+                    len(games),
 
                 'total_scores':
-                    total_scores
+                    len(scores)
             },
 
-            'recent_games': [
+            'sports': [
+
+                sport.to_dict()
+
+                for sport in sports
+            ],
+
+            'games': [
 
                 game.to_dict()
 
-                for game in recent_games
+                for game in games
             ],
 
-            'top_teams':
-                formatted_top_teams
+            'scores': [
+
+                score.to_dict()
+
+                for score in scores
+            ]
         }
 
         return success_response(
 
-            data=dashboard_data,
+            message='Dashboard loaded successfully.',
 
-            message='Dashboard loaded successfully.'
+            data=summary
         )
 
-    except Exception as e:
+    except Exception as error:
 
         return error_response(
 
             message='Failed to load dashboard.',
 
-            errors=[str(e)],
+            errors=[str(error)],
 
             status_code=500
         )

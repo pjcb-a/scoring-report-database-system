@@ -1,399 +1,370 @@
 <script setup>
-
-import { computed } from 'vue'
-
 import { useRouter } from 'vue-router'
 
-import { storeToRefs } from 'pinia'
-
-import Badge from '@/components/ui/Badge.vue'
-
-import {
-  useEventContextStore
-}
-from '@/features/events/store/eventContextStore'
-
-
-/*
-|--------------------------------------------------------------------------
-| PROPS
-|--------------------------------------------------------------------------
-*/
+const router = useRouter()
 
 const props = defineProps({
 
   event: {
     type: Object,
     required: true
+  },
+
+  isActive: {
+    type: Boolean,
+    default: false
   }
 })
 
-/*
-|--------------------------------------------------------------------------
-| ROUTER
-|--------------------------------------------------------------------------
-*/
+const emit = defineEmits([
 
-const router = useRouter()
+  'select',
 
-/*
-|--------------------------------------------------------------------------
-| GLOBAL EVENT CONTEXT
-|--------------------------------------------------------------------------
-*/
-
-const eventContextStore =
-  useEventContextStore()
-
-const {
-
-  currentEventId
-
-} = storeToRefs(
-  eventContextStore
-)
+  'delete'
+])
 
 /*
-|--------------------------------------------------------------------------
-| COMPUTED
-|--------------------------------------------------------------------------
+------------------------------------------------------------------------------
+OPEN EVENT
+------------------------------------------------------------------------------
 */
 
-const badgeVariant = computed(() => {
+const openEvent = async () => {
 
-  switch (props.event.status) {
-
-    case 'Active':
-      return 'success'
-
-    case 'Completed':
-      return 'primary'
-
-    default:
-      return 'warning'
-  }
-})
-
-const isCurrentEvent = computed(() => {
-
-  return (
-    currentEventId.value ===
-    props.event.event_id
-  )
-})
-
-/*
-|--------------------------------------------------------------------------
-| METHODS
-|--------------------------------------------------------------------------
-*/
-
-const formatDate = (date) => {
-
-  if (!date) return 'N/A'
-
-  return new Date(date)
-    .toLocaleDateString()
-}
-
-const selectEvent = () => {
-
-  /*
-  --------------------------------------------------------------------------
-  SET GLOBAL EVENT CONTEXT
-  --------------------------------------------------------------------------
-  */
-
-  eventContextStore.setCurrentEvent(
+  emit(
+    'select',
     props.event
   )
 
   /*
   --------------------------------------------------------------------------
-  REDIRECT TO EVENT DASHBOARD
+  OPEN EVENT WORKSPACE
   --------------------------------------------------------------------------
   */
 
-  router.push(
+  await router.push(
 
     `/events/${props.event.event_id}/dashboard`
   )
 }
 
+/*
+------------------------------------------------------------------------------
+DELETE EVENT
+------------------------------------------------------------------------------
+*/
+
+const deleteEvent = () => {
+
+  const confirmed = window.confirm(
+
+    `Delete "${props.event.event_name}"?`
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  emit(
+    'delete',
+    props.event.event_id
+  )
+}
 </script>
 
 <template>
-
   <div
 
-    class="event-card card-base"
+    class="event-card"
 
     :class="{
       'active-event-card':
-      isCurrentEvent
+        isActive
     }"
-
-    @click="selectEvent"
   >
 
-    <!--
-    ------------------------------------------------------------------------
-    EVENT HEADER
-    ------------------------------------------------------------------------
-    -->
+    <!-- HEADER -->
 
-    <div class="event-card-top">
+    <div class="event-card-header">
 
       <div>
+        <h2>
+          {{ event.event_name }}
+        </h2>
 
-        <div class="event-title-wrapper">
-
-          <h2 class="event-title">
-
-            {{ event.event_name }}
-
-          </h2>
-
-          <!-- ACTIVE EVENT INDICATOR -->
-
-          <span
-            v-if="isCurrentEvent"
-            class="active-indicator"
-          >
-            Current Event
-          </span>
-
-        </div>
-
-        <p class="event-date">
-
-          {{ formatDate(event.start_day) }}
-
-          -
-
-          {{ formatDate(event.end_day) }}
-
+        <p>
+          {{ event.status }}
         </p>
-
       </div>
 
-      <!-- STATUS -->
-
-      <Badge
-        :variant="badgeVariant"
-      >
+      <div class="event-status-badge">
         {{ event.status }}
-      </Badge>
-
+      </div>
     </div>
 
-    <!--
-    ------------------------------------------------------------------------
-    FOOTER
-    ------------------------------------------------------------------------
-    -->
+    <!-- DETAILS -->
 
-    <div class="event-card-footer">
+    <div class="event-details">
 
-      <div class="event-meta">
+      <div class="detail-item">
 
-        <span class="meta-label">
-          Event ID
+        <i class="fa-solid fa-calendar"></i>
+
+        <span>
+          {{ event.start_day }}
         </span>
-
-        <span class="meta-value">
-          #{{ event.event_id }}
-        </span>
-
       </div>
 
-      <!-- OPEN BUTTON -->
+      <div class="detail-item">
+
+        <i class="fa-solid fa-calendar-check"></i>
+
+        <span>
+          {{ event.end_day }}
+        </span>
+      </div>
+    </div>
+
+    <!-- STATS -->
+
+    <div class="event-stats">
+
+      <div class="stat-card">
+
+        <strong>
+          {{ event.total_sports || 0 }}
+        </strong>
+
+        <span>
+          Sports
+        </span>
+      </div>
+
+      <div class="stat-card">
+
+        <strong>
+          {{ event.total_teams || 0 }}
+        </strong>
+
+        <span>
+          Teams
+        </span>
+      </div>
+
+      <div class="stat-card">
+
+        <strong>
+          {{ event.total_games || 0 }}
+        </strong>
+
+        <span>
+          Games
+        </span>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+
+    <div class="event-actions">
 
       <button
-        class="open-event-button"
+
+        class="open-event-btn"
+
+        @click="openEvent"
       >
-        Open Event
+        <i class="fa-solid fa-folder-open"></i>
+
+        {{
+
+          isActive
+
+            ? 'Current Event'
+
+            : 'Open Event'
+        }}
       </button>
 
+      <button
+
+        class="delete-event-btn"
+
+        @click="deleteEvent"
+      >
+        <i class="fa-solid fa-trash"></i>
+
+        Delete
+      </button>
     </div>
-
   </div>
-
 </template>
 
 <style scoped>
-
 .event-card {
 
   display: flex;
 
   flex-direction: column;
 
-  gap: 20px;
+  gap: 1rem;
 
-  cursor: pointer;
+  padding: 1.25rem;
 
-  transition: var(--transition-fast);
+  border-radius: 16px;
 
-  border: 2px solid transparent;
+  background: white;
+
+  border: 1px solid #e5e7eb;
+
+  transition: 0.2s ease;
 }
-
-.event-card:hover {
-
-  transform: translateY(-3px);
-
-  border-color:
-    var(--adnu-blue-light);
-}
-
-/*
-|--------------------------------------------------------------------------
-| ACTIVE EVENT CARD
-|--------------------------------------------------------------------------
-*/
 
 .active-event-card {
 
-  border-color:
-    var(--adnu-danger-light);
+  border: 2px solid #2563eb;
 
   box-shadow:
-    0 0 0 3px rgba(
-      255,
+    0 10px 30px rgba(
+      37,
       99,
-      71,
-      0.15
+      235,
+      0.18
     );
 }
 
-/*
-|--------------------------------------------------------------------------
-| HEADER
-|--------------------------------------------------------------------------
-*/
-
-.event-card-top {
+.event-card-header {
 
   display: flex;
-
-  justify-content: space-between;
 
   align-items: flex-start;
+
+  justify-content: space-between;
 }
 
-.event-title-wrapper {
+.event-card-header h2 {
 
-  display: flex;
+  margin: 0;
 
-  align-items: center;
-
-  gap: 10px;
-
-  flex-wrap: wrap;
+  font-size: 1.1rem;
 }
 
-.event-title {
+.event-card-header p {
 
-  font-size: 20px;
+  margin-top: 0.25rem;
 
-  font-weight: 700;
+  color: #6b7280;
 }
 
-.active-indicator {
+.event-status-badge {
 
-  background-color:
-    var(--adnu-danger-light);
-
-  color: white;
-
-  padding: 4px 10px;
+  padding: 0.35rem 0.7rem;
 
   border-radius: 999px;
 
-  font-size: 11px;
+  background: #dbeafe;
+
+  color: #1d4ed8;
+
+  font-size: 0.8rem;
 
   font-weight: 600;
 }
 
-.event-date {
-
-  margin-top: 6px;
-
-  color: var(--text-muted);
-
-  font-size: 14px;
-}
-
-/*
-|--------------------------------------------------------------------------
-| FOOTER
-|--------------------------------------------------------------------------
-*/
-
-.event-card-footer {
-
-  padding-top: 14px;
-
-  border-top:
-    1px solid var(--border-color);
-
-  display: flex;
-
-  justify-content: space-between;
-
-  align-items: center;
-}
-
-.event-meta {
+.event-details {
 
   display: flex;
 
   flex-direction: column;
 
-  gap: 4px;
+  gap: 0.75rem;
 }
 
-.meta-label {
+.detail-item {
 
-  font-size: 12px;
+  display: flex;
 
-  color: var(--text-muted);
+  align-items: center;
+
+  gap: 0.6rem;
+
+  color: #4b5563;
 }
 
-.meta-value {
+.event-stats {
 
-  font-weight: 600;
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 0.75rem;
 }
 
-/*
-|--------------------------------------------------------------------------
-| OPEN BUTTON
-|--------------------------------------------------------------------------
-*/
+.stat-card {
 
-.open-event-button {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0.8rem;
+
+  border-radius: 12px;
+
+  background: #f9fafb;
+}
+
+.event-actions {
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 0.75rem;
+}
+
+.open-event-btn,
+.delete-event-btn {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.5rem;
+
+  padding: 0.8rem 1rem;
 
   border: none;
 
-  background-color:
-    var(--adnu-blue-light);
+  border-radius: 10px;
 
-  color: var(--text-main);
-
-  padding: 10px 14px;
-
-  border-radius: var(--radius-md);
+  color: white;
 
   cursor: pointer;
 
-  font-weight: 600;
-
-  transition: var(--transition-fast);
+  transition: 0.2s ease;
 }
 
-.open-event-button:hover {
+.open-event-btn {
 
-  opacity: 0.9;
+  background: #2563eb;
 }
 
+.open-event-btn:hover {
+
+  background: #1d4ed8;
+}
+
+.delete-event-btn {
+
+  background: #dc2626;
+}
+
+.delete-event-btn:hover {
+
+  background: #b91c1c;
+}
 </style>

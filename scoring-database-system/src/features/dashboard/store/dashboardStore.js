@@ -55,14 +55,18 @@ export const useDashboardStore = defineStore(
     */
 
     const currentEvent =
-      computed(() =>
-        eventContextStore.currentEvent
-      )
+      computed(() => {
+
+        return eventContextStore
+          .currentEvent
+      })
 
     const currentEventId =
-      computed(() =>
-        eventContextStore.currentEventId
-      )
+      computed(() => {
+
+        return eventContextStore
+          .currentEventId
+      })
 
     const totalSports =
       computed(() => {
@@ -88,8 +92,32 @@ export const useDashboardStore = defineStore(
     const recentGames =
       computed(() => {
 
-        return games.value.slice(-5)
+        return Array.isArray(games.value)
+
+          ? games.value.slice(-5)
+
+          : []
       })
+
+    /*
+    --------------------------------------------------------------------------
+    RESET DASHBOARD
+    --------------------------------------------------------------------------
+    */
+
+    const resetDashboard =
+      () => {
+
+        sports.value = []
+
+        games.value = []
+
+        scores.value = []
+
+        statistics.value = {}
+
+        error.value = null
+      }
 
     /*
     --------------------------------------------------------------------------
@@ -100,7 +128,16 @@ export const useDashboardStore = defineStore(
     const loadDashboard =
       async () => {
 
+        /*
+        ----------------------------------------------------------------------
+        VALIDATE EVENT
+        ----------------------------------------------------------------------
+        */
+
         if (!currentEventId.value) {
+
+          resetDashboard()
+
           return
         }
 
@@ -117,6 +154,7 @@ export const useDashboardStore = defineStore(
               currentEventId.value
             )
 
+
           /*
           --------------------------------------------------------------------
           NORMALIZED RESPONSE
@@ -124,23 +162,53 @@ export const useDashboardStore = defineStore(
           */
 
           const dashboard =
-            response.data || {}
+            response?.data?.data || {}
+
+          /*
+          --------------------------------------------------------------------
+          NORMALIZED STATE
+          --------------------------------------------------------------------
+          */
 
           sports.value =
-            dashboard.sports || []
+
+            Array.isArray(
+              dashboard.sports
+            )
+
+              ? dashboard.sports
+
+              : []
 
           games.value =
-            dashboard.games || []
+
+            Array.isArray(
+              dashboard.games
+            )
+
+              ? dashboard.games
+
+              : []
 
           scores.value =
-            dashboard.scores || []
+
+            Array.isArray(
+              dashboard.scores
+            )
+
+              ? dashboard.scores
+
+              : []
 
           statistics.value =
+
             dashboard.statistics || {}
 
         } catch (err) {
 
           console.error(err)
+
+          resetDashboard()
 
           error.value =
 
@@ -155,27 +223,6 @@ export const useDashboardStore = defineStore(
           loading.value = false
         }
       }
-
-    /*
-    --------------------------------------------------------------------------
-    RESET DASHBOARD
-    --------------------------------------------------------------------------
-    */
-
-    const resetDashboard = () => {
-
-      sports.value = []
-
-      games.value = []
-
-      scores.value = []
-
-      statistics.value = {}
-
-      loading.value = false
-
-      error.value = null
-    }
 
     return {
 

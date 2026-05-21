@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 
-import { ref, computed } from 'vue'
+import {
+
+  ref,
+
+  computed
+
+} from 'vue'
 
 
 export const useEventContextStore = defineStore(
@@ -10,83 +16,128 @@ export const useEventContextStore = defineStore(
   () => {
 
     /*
-    --------------------------------------------------
+    --------------------------------------------------------------------------
     STATE
-    --------------------------------------------------
+    --------------------------------------------------------------------------
     */
 
     const currentEvent = ref(null)
 
     /*
-    --------------------------------------------------
+    --------------------------------------------------------------------------
     GETTERS
-    --------------------------------------------------
+    --------------------------------------------------------------------------
     */
 
-    const hasSelectedEvent = computed(() => {
+    const hasSelectedEvent =
+      computed(() => {
 
-      return currentEvent.value !== null
-    })
+        return currentEvent.value !== null
+      })
 
-    const currentEventId = computed(() => {
+    const currentEventId =
+      computed(() => {
 
-      return currentEvent.value?.event_id || null
-    })
+        return currentEvent.value?.event_id || null
+      })
 
-    const currentEventName = computed(() => {
+    const currentEventName =
+      computed(() => {
 
-      return currentEvent.value?.event_name
-        || 'Sports Reporting Database System'
-    })
+        return currentEvent.value?.event_name
+
+          ||
+
+          'Sports Reporting Database System'
+      })
 
     /*
-    --------------------------------------------------
-    ACTIONS
-    --------------------------------------------------
+    --------------------------------------------------------------------------
+    SET CURRENT EVENT
+    --------------------------------------------------------------------------
     */
 
-    const setCurrentEvent = (event) => {
+    const setCurrentEvent =
+      (event) => {
 
-      currentEvent.value = event
+        currentEvent.value = event
 
-      localStorage.setItem(
-        'currentEvent',
-        JSON.stringify(event)
-      )
-    }
+        localStorage.setItem(
 
-    const clearCurrentEvent = () => {
+          'currentEvent',
 
-      currentEvent.value = null
-
-      localStorage.removeItem(
-        'currentEvent'
-      )
-    }
-
-    const loadStoredEvent = () => {
-
-      const storedEvent = localStorage.getItem(
-        'currentEvent'
-      )
-
-      if (storedEvent) {
-
-        currentEvent.value =
-          JSON.parse(storedEvent)
+          JSON.stringify(event)
+        )
       }
-    }
+
+    /*
+    --------------------------------------------------------------------------
+    CLEAR CURRENT EVENT
+    --------------------------------------------------------------------------
+    */
+
+    const clearCurrentEvent =
+      () => {
+
+        currentEvent.value = null
+
+        localStorage.removeItem(
+          'currentEvent'
+        )
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    LOAD STORED EVENT
+    --------------------------------------------------------------------------
+    */
+
+    const loadStoredEvent =
+      () => {
+
+        try {
+
+          const storedEvent =
+            localStorage.getItem(
+              'currentEvent'
+            )
+
+          if (storedEvent) {
+
+            currentEvent.value =
+              JSON.parse(storedEvent)
+          }
+
+        } catch (error) {
+
+          console.error(error)
+
+          currentEvent.value = null
+        }
+      }
+
+    /*
+    --------------------------------------------------------------------------
+    INITIALIZE STORE
+    --------------------------------------------------------------------------
+    */
+
+    loadStoredEvent()
 
     return {
 
       /*
+      ------------------------------------------------------------------------
       STATE
+      ------------------------------------------------------------------------
       */
 
       currentEvent,
 
       /*
+      ------------------------------------------------------------------------
       GETTERS
+      ------------------------------------------------------------------------
       */
 
       hasSelectedEvent,
@@ -96,7 +147,9 @@ export const useEventContextStore = defineStore(
       currentEventName,
 
       /*
+      ------------------------------------------------------------------------
       ACTIONS
+      ------------------------------------------------------------------------
       */
 
       setCurrentEvent,

@@ -35,9 +35,9 @@ import {
 
 const emit = defineEmits([
 
-  'success',
+  'submit',
 
-  'cancel'
+  'close'
 ])
 
 
@@ -343,16 +343,15 @@ const submitEvent =
 
     <div class="event-form-actions">
 
-      <PrimaryButton
+      <button
+        type="button"
 
-        label="Cancel"
+        class="cancel-btn"
 
-        icon="fas fa-times"
-
-        variant="danger"
-
-        @click="emit('cancel')"
-      />
+        @click="emit('close')"
+      >
+        Cancel
+    </button>
 
       <PrimaryButton
 
@@ -438,7 +437,25 @@ const submitEvent =
     0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
+button {
+  border: none;
+  outline: none;
+  padding: 12px 18px;
+  border-radius:
+    var(--radius-md);
+  cursor: pointer;
+  font-weight: 700;
+  transition: var(--transition-fast);
+  color: var(--white);
+  box-shadow: var(--shadow-sm);
+  background-color: var(--adnu-danger-strong);
 
+}
+
+button:hover {
+  background-color: var(--adnu-danger);
+  transition: var(--transition-fast);
+}
 /*
 |--------------------------------------------------------------------------
 | ACTIONS

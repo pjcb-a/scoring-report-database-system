@@ -1,103 +1,378 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-
-import Modal from '@/components/common/Modal.vue'
-
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import EventCard from '../components/EventCard.vue'
 
 import EventForm from '../components/EventForm.vue'
-import EventHeader from '../components/EventHeader.vue'
-import EventStats from '../components/EventStats.vue'
-import EventTable from '../components/EventTable.vue'
-import EventEmptyState from '../components/EventEmptyState.vue'
+
+import { useEventStore } from '../store/eventStore'
 
 import {
-  useEventStore
-} from '../store/eventStore'
 
+  useEventContextStore
 
-const openModal = ref(false)
+} from '../store/eventContextStore'
 
+const router = useRouter()
+/*
+------------------------------------------------------------------------------
+STORES
+------------------------------------------------------------------------------
+*/
 
-const {
+const eventStore =
+  useEventStore()
 
-  events,
+const eventContextStore =
+  useEventContextStore()
 
-  loading,
+/*
+------------------------------------------------------------------------------
+STATE
+------------------------------------------------------------------------------
+*/
 
-  totalEvents,
+const showEventForm = ref(false)
 
-  activeEvents,
+/*
+------------------------------------------------------------------------------
+COMPUTED
+------------------------------------------------------------------------------
+*/
 
-  loadEvents,
+const events =
+  computed(() => {
 
-  addEvent
+    return eventStore.events
+  })
 
-} = useEventStore()
+const loading =
+  computed(() => {
 
+    return eventStore.loading
+  })
 
-const handleCreateEvent = async (
-  payload
-) => {
+const selectedEventId =
+  computed(() => {
 
-  await addEvent(payload)
+    return eventContextStore
+      .currentEventId
+  })
 
-  openModal.value = false
-}
+/*
+------------------------------------------------------------------------------
+LOAD EVENTS
+------------------------------------------------------------------------------
+*/
 
+const loadEvents =
+  async () => {
 
-onMounted(() => {
+    await eventStore.loadEvents()
+  }
 
-  loadEvents()
+/*
+------------------------------------------------------------------------------
+SELECT EVENT
+------------------------------------------------------------------------------
+*/
+
+const selectEvent =
+  async (event) => {
+
+    /*
+    --------------------------------------------------------------------------
+    SET ACTIVE EVENT
+    --------------------------------------------------------------------------
+    */
+
+    eventContextStore
+      .setCurrentEvent(event)
+
+    /*
+    --------------------------------------------------------------------------
+    OPEN EVENT DASHBOARD
+    --------------------------------------------------------------------------
+    */
+
+    await router.push(
+
+      `/events/${event.event_id}/dashboard`
+    )
+  }
+
+/*
+------------------------------------------------------------------------------
+CREATE EVENT
+------------------------------------------------------------------------------
+*/
+
+const handleCreateEvent =
+  async (payload) => {
+
+    const createdEvent =
+
+      await eventStore
+        .createEvent(payload)
+
+    if (createdEvent) {
+
+      selectEvent(createdEvent)
+
+      showEventForm.value = false
+    }
+  }
+
+  /*
+------------------------------------------------------------------------------
+DELETE EVENT
+------------------------------------------------------------------------------
+*/
+
+const handleDeleteEvent =
+  async (eventId) => {
+
+    await eventStore.removeEvent(
+      eventId
+    )
+
+    /*
+    --------------------------------------------------------------------------
+    CLEAR ACTIVE EVENT
+    --------------------------------------------------------------------------
+    */
+
+    if (
+
+      selectedEventId.value === eventId
+    ) {
+
+      eventContextStore
+        .clearCurrentEvent()
+
+      /*
+      ------------------------------------------------------------------------
+      RETURN TO EVENTS PAGE
+      ------------------------------------------------------------------------
+      */
+
+      await router.push('/events')
+    }
+  }
+  
+/*
+------------------------------------------------------------------------------
+MOUNTED
+------------------------------------------------------------------------------
+*/
+
+onMounted(async () => {
+
+  await loadEvents()
 })
 </script>
 
 <template>
+  <section class="event-page">
 
-  <div class="event-page">
+    <!-- ACTIVE EVENT -->
 
-    <EventHeader
-      @add="openModal = true"
-    />
+    <div
 
-    <EventStats
-      :total-events="totalEvents"
-      :active-events="activeEvents"
-    />
+      v-if="eventContextStore.currentEvent"
 
-    <LoadingSpinner
-      v-if="loading"
-    />
-
-    <EventTable
-      v-else-if="events.length"
-      :events="events"
-    />
-
-    <EventEmptyState
-      v-else
-    />
-
-    <Modal
-      :is-open="openModal"
-      title="Create Event"
-      @close="openModal = false"
+      class="active-event-banner"
     >
+      <div class="active-event-content">
 
-      <EventForm
-        @submit="handleCreateEvent"
+        <i class="fa-solid fa-calendar-days"></i>
+
+        <span>
+
+          Current Event:
+
+          {{ eventContextStore.currentEventName }}
+
+        </span>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+
+    <div class="event-page-header">
+
+      <div>
+        <h1>
+          Events
+        </h1>
+
+        <p>
+          Manage all sports events.
+        </p>
+      </div>
+
+      <button
+
+        class="add-event-btn"
+
+        @click="showEventForm = true"
+      >
+        <i class="fa-solid fa-plus"></i>
+
+        Add Event
+      </button>
+    </div>
+
+    <!-- EVENT FORM -->
+
+    <EventForm
+
+      v-if="showEventForm"
+
+      @close="showEventForm = false"
+
+      @submit="handleCreateEvent"
+    />
+
+    <!-- LOADING -->
+
+    <div
+
+      v-if="loading"
+
+      class="loading-state"
+    >
+      Loading events...
+    </div>
+
+    <!-- EMPTY -->
+
+    <div
+
+      v-else-if="!events.length"
+
+      class="empty-state"
+    >
+      No events available.
+    </div>
+
+    <!-- EVENTS -->
+
+    <div
+
+      v-else
+
+      class="event-grid"
+    >
+      <EventCard
+
+        v-for="event in events"
+
+        :key="event.event_id"
+
+        :event="event"
+
+        :is-active="
+          selectedEventId === event.event_id
+        "
+
+        @select="selectEvent"
       />
-
-    </Modal>
-
-  </div>
-
+    </div>
+  </section>
 </template>
 
 <style scoped>
 .event-page {
+
   display: flex;
+
   flex-direction: column;
-  gap: 24px;
+
+  gap: 1.5rem;
+}
+
+.event-page-header {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+}
+
+.event-grid {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fill, minmax(320px, 1fr));
+
+  gap: 1.25rem;
+}
+
+.active-event-banner {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  padding: 1rem 1.25rem;
+
+  border-radius: 14px;
+
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #1d4ed8
+  );
+
+  color: white;
+}
+
+.active-event-content {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  font-weight: 600;
+}
+
+.add-event-btn {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.6rem;
+
+  padding: 0.8rem 1rem;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: #2563eb;
+
+  color: white;
+
+  cursor: pointer;
+}
+
+.loading-state,
+.empty-state {
+
+  padding: 2rem;
+
+  border-radius: 12px;
+
+  background: white;
+
+  text-align: center;
 }
 </style>
