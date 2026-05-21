@@ -1,4 +1,4 @@
-import axios from '@/services/axios'
+import api from '@/services/api'
 
 
 /*
@@ -10,7 +10,7 @@ import axios from '@/services/axios'
 export const fetchDashboardSummaryByEvent =
   async (eventId) => {
 
-    return await axios.get(
+    return await api.get(
 
       `/events/${eventId}/dashboard`
     )
@@ -26,7 +26,7 @@ export const fetchDashboardSummaryByEvent =
 export const fetchEventRankings =
   async (eventId) => {
 
-    return await axios.get(
+    return await api.get(
 
       `/events/${eventId}/reports/rankings`
     )

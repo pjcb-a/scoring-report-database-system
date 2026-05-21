@@ -59,11 +59,9 @@ const {
 
   recentGames,
 
-  recentWinners,
-
   loading
 
-} = dashboardStore
+} = storeToRefs(dashboardStore)
 
 
 /*

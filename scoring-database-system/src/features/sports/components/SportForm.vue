@@ -295,7 +295,7 @@ const submitSport =
           :key="type.scoring_type_id"
           :value="type.scoring_type_id"
         >
-          {{ type.scoring_name }}
+          {{ type.type }}
         </option>
 
       </select>
