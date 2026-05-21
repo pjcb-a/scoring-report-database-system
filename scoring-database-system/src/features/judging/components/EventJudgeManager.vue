@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, nextTick } from 'vue'
 import Input from '@/components/ui/Input.vue'
 import PrimaryButton from '@/components/ui/PrimaryButton.vue'
 import {
@@ -77,7 +77,13 @@ const removeJudge = async (judgeId) => {
   }
 }
 
-onMounted(loadJudges)
+onMounted(async () => {
+  // Delay loading to avoid router cancellation
+  await nextTick()
+  setTimeout(() => {
+    loadJudges()
+  }, 100)
+})
 
 defineExpose({ loadJudges, judges })
 </script>
