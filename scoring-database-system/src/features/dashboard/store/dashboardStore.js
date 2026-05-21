@@ -26,8 +26,14 @@ const error = ref(null)
 |--------------------------------------------------------------------------
 */
 
-const eventContextStore =
-  useEventContextStore()
+let eventContextStore = null
+
+function getEventContextStore() {
+  if (!eventContextStore) {
+    eventContextStore = useEventContextStore()
+  }
+  return eventContextStore
+}
 
 
 /*
@@ -38,12 +44,12 @@ const eventContextStore =
 
 const currentEvent =
   computed(() =>
-    eventContextStore.currentEvent
+    getEventContextStore().currentEvent
   )
 
 const currentEventId =
   computed(() =>
-    eventContextStore.currentEventId
+    getEventContextStore().currentEventId
   )
 
 const totalSports = computed(() => {

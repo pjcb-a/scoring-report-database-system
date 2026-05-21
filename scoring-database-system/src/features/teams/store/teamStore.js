@@ -1,42 +1,24 @@
 import { defineStore } from 'pinia'
-
 import { ref } from 'vue'
-
 import {
-
   getTeamsByEvent,
-
   createTeam,
-
   updateTeam,
-
   deleteTeam
-
 } from '../services/teamService'
-
-import {
-
-  useEventContextStore
-
-} from '@/features/events/store/eventContextStore'
-
+import { useEventContextStore } from '@/features/events/store/eventContextStore'
+import { runAsync } from '@/utils/request'
 
 export const useTeamStore = defineStore(
-
   'teamStore',
-
   () => {
-
     /*
     --------------------------------------------------------------------------
     STATE
     --------------------------------------------------------------------------
     */
-
     const teams = ref([])
-
     const loading = ref(false)
-
     const error = ref(null)
 
     /*
@@ -44,51 +26,22 @@ export const useTeamStore = defineStore(
     EVENT CONTEXT
     --------------------------------------------------------------------------
     */
-
-    const eventContextStore =
-      useEventContextStore()
+    const eventContextStore = useEventContextStore()
 
     /*
     --------------------------------------------------------------------------
     LOAD TEAMS
     --------------------------------------------------------------------------
     */
-
     const loadTeams = async () => {
-
-      if (
-        !eventContextStore.currentEventId
-      ) {
+      if (!eventContextStore.currentEventId) {
         return
       }
 
-      loading.value = true
-
-      error.value = null
-
-      try {
-
-        const response =
-          await getTeamsByEvent(
-
-            eventContextStore.currentEventId
-          )
-
-        teams.value =
-          response.data || []
-
-      } catch (err) {
-
-        console.error(err)
-
-        error.value =
-          err.message ||
-          'Failed to load teams.'
-
-      } finally {
-
-        loading.value = false
-      }
+      await runAsync({ loading, error }, async () => {
+        const response = await getTeamsByEvent(eventContextStore.currentEventId)
+        teams.value = response.data || []
+      })
     }
 
     /*
@@ -96,26 +49,18 @@ export const useTeamStore = defineStore(
     CREATE TEAM
     --------------------------------------------------------------------------
     */
-
     const addTeam = async (payload) => {
-
-      try {
-
-        await createTeam(
-
-          eventContextStore.currentEventId,
-
-          payload
-        )
-
-        await loadTeams()
-
-      } catch (err) {
-
-        console.error(err)
-
-        throw err
-      }
+      await runAsync(
+        { loading, error },
+        async () => {
+          await createTeam(eventContextStore.currentEventId, payload)
+          await loadTeams()
+        },
+        {
+          showSuccessToast: true,
+          successMessage: 'Team created successfully.'
+        }
+      )
     }
 
     /*
@@ -123,27 +68,18 @@ export const useTeamStore = defineStore(
     UPDATE TEAM
     --------------------------------------------------------------------------
     */
-
-    const editTeam = async (
-      teamId,
-      payload
-    ) => {
-
-      try {
-
-        await updateTeam(
-          teamId,
-          payload
-        )
-
-        await loadTeams()
-
-      } catch (err) {
-
-        console.error(err)
-
-        throw err
-      }
+    const editTeam = async (teamId, payload) => {
+      await runAsync(
+        { loading, error },
+        async () => {
+          await updateTeam(teamId, payload)
+          await loadTeams()
+        },
+        {
+          showSuccessToast: true,
+          successMessage: 'Team updated successfully.'
+        }
+      )
     }
 
     /*
@@ -151,42 +87,30 @@ export const useTeamStore = defineStore(
     DELETE TEAM
     --------------------------------------------------------------------------
     */
-
-    const removeTeam = async (
-      teamId
-    ) => {
-
-      try {
-
-        await deleteTeam(teamId)
-
-        teams.value =
-          teams.value.filter(
-
-            team =>
-              team.team_id !== teamId
+    const removeTeam = async (teamId) => {
+      await runAsync(
+        { loading, error },
+        async () => {
+          await deleteTeam(teamId)
+          teams.value = teams.value.filter(
+            team => team.team_id !== teamId
           )
-
-      } catch (err) {
-
-        console.error(err)
-
-        throw err
-      }
+        },
+        {
+          showSuccessToast: true,
+          successMessage: 'Team deleted successfully.'
+        }
+      )
     }
 
     return {
-
       /*
       ------------------------------------------------------------------------
       STATE
       ------------------------------------------------------------------------
       */
-
       teams,
-
       loading,
-
       error,
 
       /*
@@ -194,14 +118,10 @@ export const useTeamStore = defineStore(
       METHODS
       ------------------------------------------------------------------------
       */
-
       loadTeams,
-
       addTeam,
-
       editTeam,
-
       removeTeam
     }
   }
-)
+)

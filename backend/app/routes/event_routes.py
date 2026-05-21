@@ -84,15 +84,6 @@ def create_event():
     db.session.add(event)
     db.session.commit()
 
-    # Auto-update system title to the new event's name
-    try:
-        from app.routes.event_title_routes import load_event_title, save_event_title
-        settings = load_event_title()
-        settings["system_title"] = event_name
-        save_event_title(settings)
-    except Exception as e:
-        # Prevent settings update error from failing the event creation
-        pass
 
     return success_response(
         event.to_dict(),

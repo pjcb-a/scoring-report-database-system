@@ -1,36 +1,19 @@
 import { defineStore } from 'pinia'
-
 import { ref } from 'vue'
-
-import {
-
-  getEventRankings
-
-} from '../services/reportService'
-
-import {
-
-  useEventContextStore
-
-} from '@/features/events/store/eventContextStore'
-
+import { getEventRankings } from '../services/reportsService'
+import { useEventContextStore } from '@/features/events/store/eventContextStore'
+import { runAsync } from '@/utils/request'
 
 export const useReportStore = defineStore(
-
   'reportStore',
-
   () => {
-
     /*
     --------------------------------------------------------------------------
     STATE
     --------------------------------------------------------------------------
     */
-
     const rankings = ref([])
-
     const loading = ref(false)
-
     const error = ref(null)
 
     /*
@@ -38,66 +21,32 @@ export const useReportStore = defineStore(
     EVENT CONTEXT
     --------------------------------------------------------------------------
     */
-
-    const eventContextStore =
-      useEventContextStore()
+    const eventContextStore = useEventContextStore()
 
     /*
     --------------------------------------------------------------------------
     LOAD REPORTS
     --------------------------------------------------------------------------
     */
-
-    const loadRankings =
-      async () => {
-
-        if (
-          !eventContextStore.currentEventId
-        ) {
-          return
-        }
-
-        loading.value = true
-
-        error.value = null
-
-        try {
-
-          const response =
-            await getEventRankings(
-
-              eventContextStore.currentEventId
-            )
-
-          rankings.value =
-            response.data || []
-
-        } catch (err) {
-
-          console.error(err)
-
-          error.value =
-            err.message ||
-            'Failed to load rankings.'
-
-        } finally {
-
-          loading.value = false
-        }
+    const loadRankings = async () => {
+      if (!eventContextStore.currentEventId) {
+        return
       }
 
-    return {
+      await runAsync({ loading, error }, async () => {
+        const response = await getEventRankings(eventContextStore.currentEventId)
+        rankings.value = response.data || []
+      })
+    }
 
+    return {
       /*
       ------------------------------------------------------------------------
       STATE
       ------------------------------------------------------------------------
       */
-
       rankings,
-
       loading,
-
       error,
 
       /*
@@ -105,8 +54,7 @@ export const useReportStore = defineStore(
       METHODS
       ------------------------------------------------------------------------
       */
-
       loadRankings
     }
   }
-)
+)
