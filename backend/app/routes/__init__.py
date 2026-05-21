@@ -22,24 +22,24 @@ def register_blueprints(app):
 
     app.register_blueprint(event_bp, url_prefix='/api')
 
-    app.register_blueprint(sport_bp)
+    app.register_blueprint(sport_bp, url_prefix='/api')
 
-    app.register_blueprint(scoring_type_bp)
+    app.register_blueprint(scoring_type_bp, url_prefix='/api')
 
-    app.register_blueprint(team_bp)
+    app.register_blueprint(team_bp, url_prefix='/api')
 
-    app.register_blueprint(game_bp)
+    app.register_blueprint(game_bp, url_prefix='/api')
 
-    app.register_blueprint(game_score_bp)
+    app.register_blueprint(game_score_bp, url_prefix='/api')
 
-    app.register_blueprint(criteria_bp)
+    app.register_blueprint(criteria_bp, url_prefix='/api')
 
-    app.register_blueprint(judge_bp)
+    app.register_blueprint(judge_bp, url_prefix='/api')
 
-    app.register_blueprint(score_component_bp)
+    app.register_blueprint(score_component_bp, url_prefix='/api')
 
-    app.register_blueprint(event_sport_bp)
+    app.register_blueprint(event_sport_bp, url_prefix='/api')
 
-    app.register_blueprint(report_bp)
+    app.register_blueprint(report_bp, url_prefix='/api')
 
-    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(dashboard_bp, url_prefix='/api')
