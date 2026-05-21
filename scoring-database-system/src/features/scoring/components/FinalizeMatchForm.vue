@@ -1,238 +1,189 @@
 <script setup>
-import { computed, reactive, watch } from 'vue'
-import Input from '@/components/ui/Input.vue'
-import PrimaryButton from '@/components/ui/PrimaryButton.vue'
-import { THRESHOLD_INCREMENTAL } from '../store/scoringStore'
+
+import {
+  computed,
+  reactive,
+  ref
+} from 'vue'
+
+import {
+  useScoringStore
+} from '../store/scoringStore'
 
 const props = defineProps({
+
   game: {
     type: Object,
     required: true
   }
 })
 
-const emit = defineEmits(['submit', 'cancel'])
+const emit = defineEmits([
+  'success',
+  'close'
+])
 
-const GAME_STATUS_OPTIONS = [
-  'Win',
-  'Forfeit',
-  'Suspensions'
-]
+const scoringStore =
+  useScoringStore()
+
+const saving = ref(false)
 
 const form = reactive({
-  game_status: 'Win',
-  winner_team_id: '',
-  teams: []
+
+  game_status:
+
+    props.game?.game_status ||
+
+    'Finished'
 })
 
-const isThreshold = computed(() =>
-  props.game.scoring_type === THRESHOLD_INCREMENTAL
-)
+const statusOptions = [
 
-const isRankedTimed = computed(() =>
-  props.game.scoring_type === 'Ranked Timed'
-)
+  'Finished',
 
-const setCount = computed(() =>
-  Number(props.game.set_count) || 0
-)
+  'Default Win',
 
-const buildTeamEntry = (team) => {
-  const base = {
-    team_id: team.team_id,
-    team_name: team.team_name,
-    team_color: team.team_color,
-    total_score: '',
-    rank_position: '',
-    sets_won: '',
-    set_scores: []
-  }
+  'Forfeit',
 
-  if (isThreshold.value && setCount.value > 0) {
-    base.set_scores = Array.from(
-      { length: setCount.value },
-      () => ''
-    )
-  }
+  'Suspended',
 
-  return base
-}
+  'Cancelled'
+]
 
-const initForm = () => {
-  const teams = props.game.teams || []
+const gameTitle =
+  computed(() => {
 
-  form.game_status = 'Win'
-  form.winner_team_id = ''
-  form.teams = teams.map(team => buildTeamEntry(team))
-}
+    const teams =
 
-watch(
-  () => props.game?.game_id,
-  () => initForm(),
-  { immediate: true }
-)
+      props.game?.teams || []
 
-const submitForm = () => {
-  if (!form.game_status) {
-    return
-  }
+    if (teams.length >= 2) {
 
-  const teamsPayload = form.teams.map(entry => {
-    const payload = {
-      team_id: entry.team_id,
-      is_winner: Number(form.winner_team_id) === Number(entry.team_id)
+      return `${teams[0]} vs ${teams[1]}`
     }
 
-    if (isThreshold.value) {
-      payload.set_scores = entry.set_scores.map(value => Number(value))
-      payload.sets_won = Number(entry.sets_won)
-    } else {
-      payload.total_score = Number(entry.total_score)
-
-      if (isRankedTimed.value && entry.rank_position !== '') {
-        payload.rank_position = Number(entry.rank_position)
-      }
-    }
-
-    return payload
+    return 'Game Match'
   })
 
-  for (const entry of teamsPayload) {
-    if (isThreshold.value) {
-      if (
-        entry.set_scores.some(value => Number.isNaN(value))
-        || Number.isNaN(entry.sets_won)
-      ) {
-        return
-      }
-    } else if (Number.isNaN(entry.total_score)) {
+const submitForm =
+  async () => {
+
+    if (!form.game_status) {
       return
     }
+
+    saving.value = true
+
+    try {
+
+      await scoringStore.finalizeGame(
+
+        props.game.game_id,
+
+        {
+          game_status:
+            form.game_status
+        }
+      )
+
+      emit('success')
+
+      emit('close')
+
+    } catch (err) {
+
+      console.error(err)
+
+    } finally {
+
+      saving.value = false
+    }
   }
 
-  emit('submit', {
-    game_status: form.game_status,
-    teams: teamsPayload
-  })
-}
 </script>
 
 <template>
+
   <form
     class="finalize-form"
     @submit.prevent="submitForm"
   >
-    <div class="match-summary">
-      <h3>{{ game.sport || game.game_name }}</h3>
-      <p v-if="game.round">
-        {{ game.round }}
+
+    <div class="form-header">
+
+      <h2>
+        Finalize Match
+      </h2>
+
+      <p>
+        {{ gameTitle }}
       </p>
-      <p class="match-meta">
-        {{ game.scoring_type }}
-        <span v-if="isThreshold">
-          · {{ setCount }} sets
-        </span>
-      </p>
+
     </div>
 
-    <div class="input-group">
-      <label class="form-label">
-        How did the match conclude?
+    <div class="form-group">
+
+      <label>
+        Match Status
       </label>
-      <select
-        v-model="form.game_status"
-        class="base-input"
-      >
+
+      <select v-model="form.game_status">
+
         <option
-          v-for="status in GAME_STATUS_OPTIONS"
+          v-for="status in statusOptions"
           :key="status"
           :value="status"
         >
           {{ status }}
         </option>
+
       </select>
-    </div>
 
-    <div
-      v-for="entry in form.teams"
-      :key="entry.team_id"
-      class="team-score-block"
-    >
-      <div class="team-score-header">
-        <span
-          class="team-dot"
-          :style="{ backgroundColor: entry.team_color }"
-        />
-        <strong>{{ entry.team_name }}</strong>
-      </div>
-
-      <template v-if="isThreshold">
-        <div class="set-scores-grid">
-          <Input
-            v-for="(_, setIndex) in entry.set_scores"
-            :key="`${entry.team_id}-set-${setIndex}`"
-            v-model="entry.set_scores[setIndex]"
-            :label="`Set ${setIndex + 1} score`"
-            type="number"
-            min="0"
-            placeholder="0"
-          />
-        </div>
-
-        <Input
-          v-model="entry.sets_won"
-          label="Sets won"
-          type="number"
-          min="0"
-          :max="setCount"
-          placeholder="0"
-        />
-      </template>
-
-      <template v-else>
-        <Input
-          v-model="entry.total_score"
-          label="Final score"
-          type="number"
-          min="0"
-          placeholder="Enter score"
-        />
-
-        <Input
-          v-if="isRankedTimed"
-          v-model="entry.rank_position"
-          label="Rank position"
-          type="number"
-          min="1"
-          placeholder="Enter rank"
-        />
-      </template>
-
-      <label class="winner-option">
-        <input
-          v-model="form.winner_team_id"
-          type="radio"
-          name="winner"
-          :value="entry.team_id"
-        >
-        Mark as winner
-      </label>
     </div>
 
     <div class="form-actions">
+
       <button
+
         type="button"
+
         class="cancel-btn"
-        @click="emit('cancel')"
+
+        @click="$emit('close')"
       >
         Cancel
       </button>
 
-      <PrimaryButton>
-        Finalize Match
-      </PrimaryButton>
+      <button
+
+        type="submit"
+
+        class="save-btn"
+
+        :disabled="saving"
+      >
+
+        <i
+          v-if="saving"
+          class="fa-solid fa-spinner fa-spin"
+        ></i>
+
+        <i
+          v-else
+          class="fa-solid fa-check"
+        ></i>
+
+        {{ saving
+          ? 'Finalizing...'
+          : 'Finalize Match'
+        }}
+
+      </button>
+
     </div>
+
   </form>
+
 </template>
 
 <style scoped>
