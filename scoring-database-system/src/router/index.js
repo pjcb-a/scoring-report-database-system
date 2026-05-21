@@ -10,7 +10,8 @@ import JudgePage from '@/features/judging/pages/JudgePage.vue'
 import ReportsPage from '@/features/reports/pages/ReportsPage.vue'
 
 import { useEventContextStore }
-from '@/features/events/store/eventContextStore'
+  from '@/features/events/store/eventContextStore'
+import { cancelAllPendingRequests } from '@/services/api'
 
 const routes = [
 
@@ -133,6 +134,8 @@ const router = createRouter({
 */
 
 router.beforeEach((to, from, next) => {
+  // Cancel all pending network requests from the previous page/tab
+  cancelAllPendingRequests('Navigated to ' + to.path)
 
   const eventContextStore =
     useEventContextStore()
@@ -165,4 +168,4 @@ router.beforeEach((to, from, next) => {
 |--------------------------------------------------------------------------
 */
 
-export default router
+export default router

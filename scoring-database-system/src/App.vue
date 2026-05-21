@@ -1,7 +1,7 @@
 <script setup>
-  import DashboardLayout from './layouts/DashboardLayout.vue'
+  import DashboardLayout from './layouts/DashBoardLayout.vue'
   import Toast from '@/components/ui/Toast.vue'
-  import { useToastStore } from '@/stores/toastStore'
+  import { useToastStore } from '@/features/events/store/toastStore'
   import { storeToRefs } from 'pinia'
 
 

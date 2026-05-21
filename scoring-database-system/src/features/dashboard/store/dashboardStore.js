@@ -38,15 +38,28 @@ export const useDashboardStore = defineStore(
 
     const sports = ref([])
 
-    const games = ref([])
+let eventContextStore = null
+
+function getEventContextStore() {
+  if (!eventContextStore) {
+    eventContextStore = useEventContextStore()
+  }
+  return eventContextStore
+}
 
     const scores = ref([])
 
     const statistics = ref({})
 
-    const loading = ref(false)
+const currentEvent =
+  computed(() =>
+    getEventContextStore().currentEvent
+  )
 
-    const error = ref(null)
+const currentEventId =
+  computed(() =>
+    getEventContextStore().currentEventId
+  )
 
     /*
     --------------------------------------------------------------------------
