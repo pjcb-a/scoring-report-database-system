@@ -1,4 +1,4 @@
-import api from '@/services/axios'
+import api from '@/services/api'
 
 
 /*
@@ -39,16 +39,16 @@ export const getGame =
 
 /*
 |--------------------------------------------------------------------------
-| CREATE GAME
+| CREATE GAME INSIDE EVENT
 |--------------------------------------------------------------------------
 */
 
 export const createGame =
-  async (payload) => {
+  async (eventId, payload) => {
 
     const response = await api.post(
 
-      '/games',
+      `/events/${eventId}/games`,
 
       payload
     )

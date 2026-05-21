@@ -3,9 +3,22 @@ from flask import Blueprint, request
 from app.extensions import db
 
 from app.models.game import Game
+from app.models.game_score import GameScore
 from app.models.event import Event
-from app.models.team import Team
 from app.models.event_sport import EventSport
+from app.models.team import Team
+
+
+ALLOWED_GAME_STATUSES = {
+    'Win',
+    'Forfeit',
+    'Suspensions'
+}
+
+from app.routes.utils import (
+    parse_datetime,
+    clean_string
+)
 
 from app.utils.responses import (
 
@@ -132,21 +145,39 @@ def create_game(event_id):
             'event_sport_id'
         )
 
-        team_a_id = payload.get(
-            'team_a_id'
+        game_name = clean_string(
+            payload.get('game_name')
         )
 
-        team_b_id = payload.get(
-            'team_b_id'
+        game_status = clean_string(
+            payload.get(
+                'game_status',
+                'Win'
+            )
+        ) or 'Win'
+
+        team_ids_raw = payload.get(
+            'team_ids',
+            []
         )
 
-        game_name = payload.get(
-            'game_name'
+        round_name = clean_string(
+            payload.get('round')
         )
 
-        game_status = payload.get(
-            'game_status',
-            'Scheduled'
+        venue_name = clean_string(
+            payload.get('venue_name')
+            or payload.get('venue')
+        )
+
+        start_raw = (
+            payload.get('start_date')
+            or payload.get('start_time')
+        )
+
+        end_raw = (
+            payload.get('end_date')
+            or payload.get('end_time')
         )
 
         """
@@ -166,40 +197,54 @@ def create_game(event_id):
                 'Event sport is required.'
             ]
 
-        if not team_a_id:
+        if game_status not in ALLOWED_GAME_STATUSES:
 
             validation_errors[
-                'team_a_id'
+                'game_status'
             ] = [
 
-                'Team A is required.'
+                'Game status must be Win, Forfeit, or Suspensions.'
             ]
 
-        if not team_b_id:
+        if not isinstance(team_ids_raw, list):
 
             validation_errors[
-                'team_b_id'
+                'team_ids'
             ] = [
 
-                'Team B is required.'
+                'Teams must be provided as a list.'
             ]
 
-        if not game_name:
+        team_ids = []
+
+        if isinstance(team_ids_raw, list):
+
+            for team_id in team_ids_raw:
+
+                try:
+
+                    team_ids.append(int(team_id))
+
+                except (TypeError, ValueError):
+
+                    validation_errors[
+                        'team_ids'
+                    ] = [
+
+                        'Each team id must be a valid integer.'
+                    ]
+
+                    break
+
+            team_ids = list(dict.fromkeys(team_ids))
+
+        if not team_ids:
 
             validation_errors[
-                'game_name'
+                'team_ids'
             ] = [
 
-                'Game name is required.'
-            ]
-
-        if team_a_id == team_b_id:
-
-            validation_errors[
-                'teams'
-            ] = [
-
-                'Teams must be different.'
+                'Select at least one team for this game.'
             ]
 
         if validation_errors:
@@ -236,35 +281,83 @@ def create_game(event_id):
                 status_code=400
             )
 
-        """
-        ----------------------------------------------------------------------
-        VALIDATE TEAMS
-        ----------------------------------------------------------------------
-        """
+        validated_teams = []
 
-        team_a = Team.query.filter_by(
+        for team_id in team_ids:
 
-            team_id=team_a_id,
+            team = Team.query.filter_by(
 
-            event_id=event_id
+                team_id=team_id,
 
-        ).first()
+                event_id=event_id
 
-        team_b = Team.query.filter_by(
+            ).first()
 
-            team_id=team_b_id,
+            if not team:
 
-            event_id=event_id
+                return error_response(
 
-        ).first()
+                    message='Validation failed.',
 
-        if not team_a or not team_b:
+                    errors={
+                        'team_ids': [
+                            f'Team {team_id} is not part of this event.'
+                        ]
+                    },
+
+                    status_code=400
+                )
+
+            validated_teams.append(team)
+
+        start_date, start_error = parse_datetime(
+            start_raw,
+            'Start time'
+        )
+
+        if start_error:
 
             return error_response(
 
-                message='Invalid teams for this event.',
+                message='Validation failed.',
+
+                errors={
+                    'start_time': [start_error]
+                },
 
                 status_code=400
+            )
+
+        end_date, end_error = parse_datetime(
+            end_raw,
+            'End time'
+        )
+
+        if end_error:
+
+            return error_response(
+
+                message='Validation failed.',
+
+                errors={
+                    'end_time': [end_error]
+                },
+
+                status_code=400
+            )
+
+        if not game_name:
+
+            sport_label = (
+                event_sport.sport.sport_name
+                if event_sport.sport
+                else 'Game'
+            )
+
+            game_name = (
+                f"{sport_label} - {round_name}"
+                if round_name
+                else sport_label
             )
 
         """
@@ -279,16 +372,40 @@ def create_game(event_id):
 
             event_sport_id=event_sport_id,
 
-            team_a_id=team_a_id,
-
-            team_b_id=team_b_id,
-
             game_name=game_name,
 
-            game_status=game_status
+            start_date=start_date,
+
+            end_date=end_date,
+
+            venue_name=venue_name,
+
+            game_status=game_status,
+
+            round=round_name
         )
 
         db.session.add(game)
+
+        db.session.flush()
+
+        for team in validated_teams:
+
+            db.session.add(
+
+                GameScore(
+
+                    event_id=event_id,
+
+                    game_id=game.game_id,
+
+                    team_id=team.team_id,
+
+                    total_score=0,
+
+                    is_winner=False
+                )
+            )
 
         db.session.commit()
 
@@ -357,12 +474,132 @@ def update_game(game_id):
                 status_code=400
             )
 
-        game.game_name = payload.get(
+        if 'game_name' in payload:
 
-            'game_name',
+            game.game_name = clean_string(
+                payload.get('game_name')
+            ) or game.game_name
 
-            game.game_name
+        if 'event_sport_id' in payload:
+
+            event_sport_id = payload.get(
+                'event_sport_id'
+            )
+
+            event_sport = EventSport.query.filter_by(
+
+                event_sport_id=event_sport_id,
+
+                event_id=game.event_id
+
+            ).first()
+
+            if not event_sport:
+
+                return error_response(
+
+                    message='Invalid event sport.',
+
+                    status_code=400
+                )
+
+            game.event_sport_id = event_sport_id
+
+        start_raw = (
+            payload.get('start_date')
+            if 'start_date' in payload
+            else payload.get('start_time')
+            if 'start_time' in payload
+            else None
         )
+
+        if start_raw is not None:
+
+            start_date, start_error = parse_datetime(
+                start_raw,
+                'Start time'
+            )
+
+            if start_error:
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'start_time': [start_error]
+                    },
+
+                    status_code=400
+                )
+
+            game.start_date = start_date
+
+        end_raw = (
+            payload.get('end_date')
+            if 'end_date' in payload
+            else payload.get('end_time')
+            if 'end_time' in payload
+            else None
+        )
+
+        if end_raw is not None:
+
+            end_date, end_error = parse_datetime(
+                end_raw,
+                'End time'
+            )
+
+            if end_error:
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'end_time': [end_error]
+                    },
+
+                    status_code=400
+                )
+
+            game.end_date = end_date
+
+        if 'venue_name' in payload or 'venue' in payload:
+
+            game.venue_name = clean_string(
+                payload.get('venue_name')
+                or payload.get('venue')
+            )
+
+        if 'game_status' in payload:
+
+            next_status = clean_string(
+                payload.get('game_status')
+            ) or game.game_status
+
+            if next_status not in ALLOWED_GAME_STATUSES:
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'game_status': [
+                            'Game status must be Win, Forfeit, or Suspensions.'
+                        ]
+                    },
+
+                    status_code=400
+                )
+
+            game.game_status = next_status
+
+        if 'round' in payload:
+
+            game.round = clean_string(
+                payload.get('round')
+            )
 
         db.session.commit()
 

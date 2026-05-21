@@ -53,6 +53,21 @@ const props = defineProps({
   name: {
     type: String,
     default: ''
+  },
+
+  min: {
+    type: [String, Number],
+    default: undefined
+  },
+
+  max: {
+    type: [String, Number],
+    default: undefined
+  },
+
+  step: {
+    type: [String, Number],
+    default: undefined
   }
 })
 
@@ -134,6 +149,12 @@ const inputId =
       :placeholder="placeholder"
 
       :disabled="disabled"
+
+      :min="min"
+
+      :max="max"
+
+      :step="step"
 
       class="input-field"
 
