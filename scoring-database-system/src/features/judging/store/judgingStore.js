@@ -1,87 +1,221 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
-import { finalizeMatch } from '@/features/scoring/services/scoringService'
-import { getGamesByEvent } from '@/features/games/services/gameService'
-import { getJudgesByEvent } from '../services/judgingService'
-import { useEventContextStore } from '@/features/events/store/eventContextStore'
-import { runAsync } from '@/utils/request'
 
-export const COMPONENT_SCORE = 'Component Score'
+import {
+  ref,
+  computed
+} from 'vue'
 
-const isComponentGame = (game) =>
-  game.scoring_type === COMPONENT_SCORE
+import {
 
-export const useJudgingStore = defineStore('judgingStore', () => {
-  const games = ref([])
-  const judges = ref([])
-  const loading = ref(false)
-  const error = ref(null)
+  getJudgeScoresByEvent,
 
-  const eventContextStore = useEventContextStore()
+  createJudgeScoreService,
 
-  const pendingGames = computed(() =>
-    games.value.filter(
-      game => !game.is_finalized && isComponentGame(game)
-    )
-  )
+  finalizeJudgeGameService
 
-  const finalizedGames = computed(() =>
-    games.value.filter(
-      game => game.is_finalized && isComponentGame(game)
-    )
-  )
+} from '../services/judgingService'
 
-  const loadGames = async () => {
-    if (!eventContextStore.currentEventId) {
-      return
-    }
+import {
 
-    await runAsync({ loading, error }, async () => {
-      const response = await getGamesByEvent(
-        eventContextStore.currentEventId
-      )
-      games.value = response.data || []
-    })
-  }
+  useEventContextStore
 
-  const loadJudges = async () => {
-    if (!eventContextStore.currentEventId) {
-      return
-    }
+} from '@/features/events/store/eventContextStore'
 
-    try {
-      const response = await getJudgesByEvent(
-        eventContextStore.currentEventId
-      )
-      judges.value = response.data || []
-    } catch (err) {
-      console.error(err)
-    }
-  }
+export const useJudgingStore = defineStore(
 
-  const finalizeGame = async (gameId, payload) => {
-    await runAsync(
-      { loading, error },
+  'judgingStore',
+
+  () => {
+
+    /*
+    |--------------------------------------------------------------------------
+    | STATE
+    |--------------------------------------------------------------------------
+    */
+
+    const judgeScores = ref([])
+
+    const loading = ref(false)
+
+    const error = ref(null)
+
+    /*
+    |--------------------------------------------------------------------------
+    | EVENT CONTEXT
+    |--------------------------------------------------------------------------
+    */
+
+    const eventContextStore =
+      useEventContextStore()
+
+    const currentEventId =
+      computed(() => {
+
+        return eventContextStore
+          .currentEventId
+      })
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD JUDGE SCORES
+    |--------------------------------------------------------------------------
+    */
+
+    const loadJudgeScores =
       async () => {
-        await finalizeMatch(gameId, payload)
-        await loadGames()
-      },
-      {
-        showSuccessToast: true,
-        successMessage: 'Match finalized successfully.'
-      }
-    )
-  }
 
-  return {
-    games,
-    judges,
-    loading,
-    error,
-    pendingGames,
-    finalizedGames,
-    loadGames,
-    loadJudges,
-    finalizeGame
+        if (!currentEventId.value) {
+
+          judgeScores.value = []
+
+          return
+        }
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          const response =
+
+            await getJudgeScoresByEvent(
+
+              currentEventId.value
+            )
+
+          judgeScores.value =
+
+            Array.isArray(response.data)
+
+              ? response.data
+
+              : []
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.message ||
+
+            'Failed to load judge scores.'
+
+          judgeScores.value = []
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE JUDGE SCORE
+    |--------------------------------------------------------------------------
+    */
+
+    const createJudgeScore =
+      async (payload) => {
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          await createJudgeScoreService(
+            payload
+          )
+
+          await loadJudgeScores()
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.message ||
+
+            'Failed to create judge score.'
+
+          throw err
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    /*
+    |--------------------------------------------------------------------------
+    | FINALIZE JUDGE GAME
+    |--------------------------------------------------------------------------
+    */
+
+    const finalizeJudgeGame =
+      async (gameId, payload) => {
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          await finalizeJudgeGameService(
+
+            gameId,
+
+            payload
+          )
+
+          await loadJudgeScores()
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.message ||
+
+            'Failed to finalize judge game.'
+
+          throw err
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    return {
+
+      /*
+      |--------------------------------------------------------------------------
+      | STATE
+      |--------------------------------------------------------------------------
+      */
+
+      judgeScores,
+
+      loading,
+
+      error,
+
+      /*
+      |--------------------------------------------------------------------------
+      | METHODS
+      |--------------------------------------------------------------------------
+      */
+
+      loadJudgeScores,
+
+      createJudgeScore,
+
+      finalizeJudgeGame
+    }
   }
-})
+)

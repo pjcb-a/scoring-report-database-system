@@ -1,69 +1,221 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
-import { finalizeMatch } from '../services/scoringService'
-import { getGamesByEvent } from '@/features/games/services/gameService'
-import { useEventContextStore } from '@/features/events/store/eventContextStore'
-import { runAsync } from '@/utils/request'
 
-export const THRESHOLD_INCREMENTAL = 'Threshold Incremental'
-export const COMPONENT_SCORE = 'Component Score'
+import {
+  ref,
+  computed
+} from 'vue'
 
-const isNonComponentGame = (game) =>
-  game.scoring_type !== COMPONENT_SCORE
+import {
 
-export const useScoringStore = defineStore('scoringStore', () => {
-  const games = ref([])
-  const loading = ref(false)
-  const error = ref(null)
+  getScoresByEvent,
 
-  const eventContextStore = useEventContextStore()
+  createScoreService,
 
-  const pendingGames = computed(() =>
-    games.value.filter(
-      game => !game.is_finalized && isNonComponentGame(game)
-    )
-  )
+  finalizeGameService
 
-  const finalizedGames = computed(() =>
-    games.value.filter(
-      game => game.is_finalized && isNonComponentGame(game)
-    )
-  )
+} from '../services/scoringService'
 
-  const loadGames = async () => {
-    if (!eventContextStore.currentEventId) {
-      return
-    }
+import {
 
-    await runAsync({ loading, error }, async () => {
-      const response = await getGamesByEvent(
-        eventContextStore.currentEventId
-      )
-      games.value = response.data || []
-    })
-  }
+  useEventContextStore
 
-  const finalizeGame = async (gameId, payload) => {
-    await runAsync(
-      { loading, error },
+} from '@/features/events/store/eventContextStore'
+
+export const useScoringStore = defineStore(
+
+  'scoringStore',
+
+  () => {
+
+    /*
+    |--------------------------------------------------------------------------
+    | STATE
+    |--------------------------------------------------------------------------
+    */
+
+    const scores = ref([])
+
+    const loading = ref(false)
+
+    const error = ref(null)
+
+    /*
+    |--------------------------------------------------------------------------
+    | EVENT CONTEXT
+    |--------------------------------------------------------------------------
+    */
+
+    const eventContextStore =
+      useEventContextStore()
+
+    const currentEventId =
+      computed(() => {
+
+        return eventContextStore
+          .currentEventId
+      })
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD SCORES
+    |--------------------------------------------------------------------------
+    */
+
+    const loadScores =
       async () => {
-        await finalizeMatch(gameId, payload)
-        await loadGames()
-      },
-      {
-        showSuccessToast: true,
-        successMessage: 'Match finalized successfully.'
-      }
-    )
-  }
 
-  return {
-    games,
-    loading,
-    error,
-    pendingGames,
-    finalizedGames,
-    loadGames,
-    finalizeGame
+        if (!currentEventId.value) {
+
+          scores.value = []
+
+          return
+        }
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          const response =
+
+            await getScoresByEvent(
+
+              currentEventId.value
+            )
+
+          scores.value =
+
+            Array.isArray(response.data)
+
+              ? response.data
+
+              : []
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.message ||
+
+            'Failed to load scores.'
+
+          scores.value = []
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE SCORE
+    |--------------------------------------------------------------------------
+    */
+
+    const createScore =
+      async (payload) => {
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          await createScoreService(
+            payload
+          )
+
+          await loadScores()
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.message ||
+
+            'Failed to create score.'
+
+          throw err
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    /*
+    |--------------------------------------------------------------------------
+    | FINALIZE GAME
+    |--------------------------------------------------------------------------
+    */
+
+    const finalizeGame =
+      async (gameId, payload) => {
+
+        loading.value = true
+
+        error.value = null
+
+        try {
+
+          await finalizeGameService(
+
+            gameId,
+
+            payload
+          )
+
+          await loadScores()
+
+        } catch (err) {
+
+          console.error(err)
+
+          error.value =
+
+            err.message ||
+
+            'Failed to finalize game.'
+
+          throw err
+
+        } finally {
+
+          loading.value = false
+        }
+      }
+
+    return {
+
+      /*
+      |--------------------------------------------------------------------------
+      | STATE
+      |--------------------------------------------------------------------------
+      */
+
+      scores,
+
+      loading,
+
+      error,
+
+      /*
+      |--------------------------------------------------------------------------
+      | METHODS
+      |--------------------------------------------------------------------------
+      */
+
+      loadScores,
+
+      createScore,
+
+      finalizeGame
+    }
   }
-})
+)
