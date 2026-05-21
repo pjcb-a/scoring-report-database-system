@@ -1,6 +1,6 @@
 <script setup>
 
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 
 import { useRouter } from 'vue-router'
 
@@ -17,6 +17,10 @@ import {
   useTeamStore
 
 } from '../store/teamStore'
+
+import TeamForm from '../components/TeamForm.vue'
+
+import TeamCard from '../components/TeamCard.vue'
 
 
 /*
@@ -68,17 +72,20 @@ const {
 
 /*
 |--------------------------------------------------------------------------
+| STATE
+|--------------------------------------------------------------------------
+*/
+
+const showTeamForm = ref(false)
+
+
+/*
+|--------------------------------------------------------------------------
 | INITIALIZE
 |--------------------------------------------------------------------------
 */
 
 onMounted(async () => {
-
-  /*
-  --------------------------------------------------------------------------
-  VALIDATE EVENT CONTEXT
-  --------------------------------------------------------------------------
-  */
 
   if (!currentEvent.value) {
 
@@ -87,14 +94,27 @@ onMounted(async () => {
     return
   }
 
-  /*
-  --------------------------------------------------------------------------
-  LOAD EVENT TEAMS
-  --------------------------------------------------------------------------
-  */
-
   await teamStore.loadTeams()
 })
+
+/*
+|--------------------------------------------------------------------------
+| DELETE TEAM
+|--------------------------------------------------------------------------
+*/
+
+const handleDeleteTeam =
+  async (teamId) => {
+
+    try {
+
+      await teamStore.removeTeam(teamId)
+
+    } catch (err) {
+
+      console.error(err)
+    }
+  }
 
 </script>
 
@@ -102,46 +122,41 @@ onMounted(async () => {
 
   <section class="team-page">
 
-    <!--
-    ------------------------------------------------------------------------
-    HEADER
-    ------------------------------------------------------------------------
-    -->
-
     <div class="team-page-header">
 
-      <h1 class="team-page-title">
+      <div>
+        <h1>
+          {{ currentEvent?.event_name }}
+        </h1>
 
-        {{ currentEvent?.event_name }}
+        <p>
+          Manage event teams.
+        </p>
+      </div>
 
-      </h1>
+      <button
+        class="add-team-btn"
+        @click="showTeamForm = true"
+      >
+        <i class="fa-solid fa-plus"></i>
 
-      <p class="team-page-subtitle">
-
-        Event Teams
-
-      </p>
+        Add Team
+      </button>
 
     </div>
 
-    <!--
-    ------------------------------------------------------------------------
-    LOADING
-    ------------------------------------------------------------------------
-    -->
+    <TeamForm
+      v-if="showTeamForm"
+      @close="showTeamForm = false"
+      @success="showTeamForm = false"
+    />
 
     <div
       v-if="loading"
-      class="team-loading"
+      class="loading-state"
     >
       Loading teams...
     </div>
-
-    <!--
-    ------------------------------------------------------------------------
-    ERROR
-    ------------------------------------------------------------------------
-    -->
 
     <div
       v-else-if="error"
@@ -150,36 +165,24 @@ onMounted(async () => {
       {{ error }}
     </div>
 
-    <!--
-    ------------------------------------------------------------------------
-    TEAM LIST
-    ------------------------------------------------------------------------
-    -->
+    <div
+      v-else-if="!teams.length"
+      class="empty-state"
+    >
+      No teams found. Add your first team.
+    </div>
 
     <div
       v-else
       class="team-grid"
     >
 
-      <div
+      <TeamCard
         v-for="team in teams"
         :key="team.team_id"
-        class="team-card"
-      >
-
-        <div
-          class="team-color"
-          :style="{
-            backgroundColor:
-              team.team_color
-          }"
-        />
-
-        <h3>
-          {{ team.team_name }}
-        </h3>
-
-      </div>
+        :team="team"
+        @delete="handleDeleteTeam"
+      />
 
     </div>
 
@@ -191,34 +194,91 @@ onMounted(async () => {
 
 .team-page {
 
-  padding: 30px;
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 1.5rem;
 }
 
 .team-page-header {
 
-  margin-bottom: 30px;
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
 }
 
-.team-page-title {
+.team-page-header h1 {
 
   font-size: 32px;
 
   font-weight: 800;
 }
 
-.team-page-subtitle {
+.team-page-header p {
 
   margin-top: 6px;
 
   color: var(--text-muted);
 }
 
-.team-loading,
-.team-error {
+.add-team-btn {
 
-  padding: 30px;
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.6rem;
+
+  padding: 0.8rem 1rem;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: #2563eb;
+
+  color: white;
+
+  cursor: pointer;
+
+  font-weight: 600;
+
+  transition: 0.2s ease;
+}
+
+.add-team-btn:hover {
+
+  background: #1d4ed8;
+}
+
+.loading-state,
+.empty-state {
+
+  padding: 2rem;
+
+  border-radius: 12px;
+
+  background: white;
 
   text-align: center;
+
+  color: var(--text-muted);
+}
+
+.team-error {
+
+  padding: 2rem;
+
+  border-radius: 12px;
+
+  background: white;
+
+  text-align: center;
+
+  color: var(--adnu-danger);
 }
 
 .team-grid {
@@ -226,32 +286,9 @@ onMounted(async () => {
   display: grid;
 
   grid-template-columns:
-    repeat(auto-fit, minmax(220px, 1fr));
+    repeat(auto-fill, minmax(260px, 1fr));
 
-  gap: 20px;
-}
-
-.team-card {
-
-  background-color: var(--white);
-
-  border:
-    1px solid var(--border-color);
-
-  border-radius: var(--radius-lg);
-
-  padding: 20px;
-}
-
-.team-color {
-
-  width: 50px;
-
-  height: 50px;
-
-  border-radius: 50%;
-
-  margin-bottom: 16px;
+  gap: 1.25rem;
 }
 
 </style>
