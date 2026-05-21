@@ -16,7 +16,7 @@ defineProps({
       <p>Total Sports</p>
 
       <h1>
-        {{ totalSports }}
+        {{ totalSports  || 0}}
       </h1>
 
     </div>
@@ -26,7 +26,7 @@ defineProps({
       <p>Component Sports</p>
 
       <h1>
-        {{ componentSports }}
+        {{ componentSports || 0}}
       </h1>
 
     </div>

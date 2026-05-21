@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 import {
 
@@ -37,8 +37,6 @@ export const useSportStore = defineStore(
 
     const sports = ref([])
 
-    const masterSports = ref([])
-
     const loading = ref(false)
 
     const error = ref(null)
@@ -52,154 +50,149 @@ export const useSportStore = defineStore(
     const eventContextStore =
       useEventContextStore()
 
+    const currentEventId =
+  computed(() => {
+
+    return eventContextStore
+      .currentEventId
+  })
+
+    /*
+------------------------------------------------------------------------------
+LOAD EVENT SPORTS
+------------------------------------------------------------------------------
+*/
+
+const loadSports =
+  async () => {
+
     /*
     --------------------------------------------------------------------------
-    LOAD EVENT SPORTS
+    VALIDATE EVENT
     --------------------------------------------------------------------------
     */
 
-    const loadSports = async () => {
+    if (!currentEventId.value) {
 
-      if (
-        !eventContextStore.currentEventId
-      ) {
-        return
-      }
+      sports.value = []
 
-      loading.value = true
-
-      error.value = null
-
-      try {
-
-        const response =
-          await getSportsByEvent(
-
-            eventContextStore.currentEventId
-          )
-
-        sports.value =
-          response.data || []
-
-      } catch (err) {
-
-        console.error(err)
-
-        error.value =
-          err.message ||
-          'Failed to load sports.'
-
-      } finally {
-
-        loading.value = false
-      }
+      return
     }
 
-    /*
-    --------------------------------------------------------------------------
-    LOAD MASTER SPORTS
-    --------------------------------------------------------------------------
-    */
+    loading.value = true
 
-    const loadMasterSports =
-      async () => {
+    error.value = null
 
-        try {
+    try {
 
-          const response =
-            await getSports()
+      const response =
 
-          masterSports.value =
-            response.data || []
+        await getSportsByEvent(
 
-        } catch (err) {
+          currentEventId.value
+        )
 
-          console.error(err)
-        }
-      }
+      sports.value =
 
-    /*
-    --------------------------------------------------------------------------
-    CREATE MASTER SPORT
-    --------------------------------------------------------------------------
-    */
+        Array.isArray(response.data)
 
-    const addMasterSport =
-      async (payload) => {
+          ? response.data
 
-        try {
+          : []
 
-          await createSport(payload)
+    } catch (err) {
 
-          await loadMasterSports()
+      console.error(err)
 
-        } catch (err) {
+      sports.value = []
 
-          console.error(err)
+      error.value =
 
-          throw err
-        }
-      }
+        err.message ||
+
+        'Failed to load sports.'
+
+    } finally {
+
+      loading.value = false
+    }
+  }
 
     /*
-    --------------------------------------------------------------------------
-    ADD SPORT TO EVENT
-    --------------------------------------------------------------------------
-    */
+------------------------------------------------------------------------------
+ADD SPORT TO EVENT
+------------------------------------------------------------------------------
+*/
 
-    const addSport =
-      async (payload) => {
+const addSport =
+  async (payload) => {
 
-        try {
+    if (!currentEventId.value) {
+      return
+    }
 
-          await addSportToEvent(
+    try {
 
-            eventContextStore.currentEventId,
+      await addSportToEvent(
 
-            payload
-          )
+        currentEventId.value,
 
-          await loadSports()
+        payload
+      )
 
-        } catch (err) {
+      /*
+      ------------------------------------------------------------------------
+      REFRESH SPORTS
+      ------------------------------------------------------------------------
+      */
 
-          console.error(err)
+      await loadSports()
 
-          throw err
-        }
-      }
+    } catch (err) {
+
+      console.error(err)
+
+      throw err
+    }
+  }
 
     /*
-    --------------------------------------------------------------------------
-    REMOVE EVENT SPORT
-    --------------------------------------------------------------------------
-    */
+------------------------------------------------------------------------------
+REMOVE EVENT SPORT
+------------------------------------------------------------------------------
+*/
 
-    const deleteSport =
-      async (eventSportId) => {
+const deleteSport =
+  async (eventSportId) => {
 
-        try {
+    try {
 
-          await removeEventSport(
-            eventSportId
-          )
+      await removeEventSport(
+        eventSportId
+      )
 
-          sports.value =
-            sports.value.filter(
+      /*
+      ------------------------------------------------------------------------
+      OPTIMISTIC UI UPDATE
+      ------------------------------------------------------------------------
+      */
 
-              sport =>
+      sports.value =
+        sports.value.filter(
 
-                sport.event_sport_id
-                !== eventSportId
-            )
+          sport =>
 
-        } catch (err) {
+            sport.event_sport_id
+            !== eventSportId
+        )
 
-          console.error(err)
+    } catch (err) {
 
-          throw err
-        }
-      }
+      console.error(err)
+
+      throw err
+    }
+  }
 
     return {
 
@@ -210,8 +203,6 @@ export const useSportStore = defineStore(
       */
 
       sports,
-
-      masterSports,
 
       loading,
 
@@ -224,10 +215,6 @@ export const useSportStore = defineStore(
       */
 
       loadSports,
-
-      loadMasterSports,
-
-      addMasterSport,
 
       addSport,
 

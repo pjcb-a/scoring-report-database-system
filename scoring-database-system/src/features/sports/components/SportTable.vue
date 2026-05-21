@@ -6,13 +6,28 @@ defineProps({
   sports: {
     type: Array,
     required: true
+  },
+
+  currentEventId: {
+    type: Number,
+    default: null
   }
 })
 </script>
 
 <template>
 
-  <div class="card-base table-container">
+  <div
+    v-if="!currentEventId"
+    class="empty-state"
+  >
+    Please select an event first.
+  </div>
+
+  <div
+    v-else
+    class="card-base table-container"
+  >
 
     <table class="data-table">
 
@@ -36,7 +51,7 @@ defineProps({
 
         <tr
           v-for="sport in sports"
-          :key="sport.sport_id"
+          :key="sport.event_sport_id"
         >
 
           <td>
@@ -63,6 +78,20 @@ defineProps({
 
 <style scoped>
 .table-container {
+
   overflow-x: auto;
+}
+
+.empty-state {
+
+  padding: 2rem;
+
+  border-radius: 12px;
+
+  background: white;
+
+  text-align: center;
+
+  color: #6b7280;
 }
 </style>

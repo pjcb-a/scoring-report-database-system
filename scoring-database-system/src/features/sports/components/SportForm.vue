@@ -1,24 +1,11 @@
 <script setup>
-
-import { onMounted, ref } from 'vue'
-
-import Input
-  from '@/components/ui/Input.vue'
-
-import PrimaryButton
-  from '@/components/ui/PrimaryButton.vue'
-
 import {
 
-  required
+  computed,
 
-} from '@/utils/validators'
+  ref
 
-import {
-
-  createValidation
-
-} from '@/utils/validation'
+} from 'vue'
 
 import {
 
@@ -28,15 +15,15 @@ import {
 
 import {
 
-  getScoringTypes
+  useEventContextStore
 
-} from '../services/sportService'
+} from '@/features/events/store/eventContextStore'
 
 
 /*
-|--------------------------------------------------------------------------
-| EMITS
-|--------------------------------------------------------------------------
+------------------------------------------------------------------------------
+EMITS
+------------------------------------------------------------------------------
 */
 
 const emit = defineEmits([
@@ -46,151 +33,83 @@ const emit = defineEmits([
   'close'
 ])
 
-
 /*
-|--------------------------------------------------------------------------
-| STORE
-|--------------------------------------------------------------------------
+------------------------------------------------------------------------------
+STORES
+------------------------------------------------------------------------------
 */
 
 const sportStore =
   useSportStore()
 
+const eventContextStore =
+  useEventContextStore()
 
 /*
-|--------------------------------------------------------------------------
-| FORM STATE
-|--------------------------------------------------------------------------
+------------------------------------------------------------------------------
+STATE
+------------------------------------------------------------------------------
 */
 
-const sportName =
-  ref('')
+const sportName = ref('')
 
-const scoringTypeId =
-  ref('')
+const scoringType = ref('')
 
-const saving =
-  ref(false)
-
-const scoringTypes =
-  ref([])
-
+const saving = ref(false)
 
 /*
-|--------------------------------------------------------------------------
-| VALIDATION
-|--------------------------------------------------------------------------
+------------------------------------------------------------------------------
+COMPUTED
+------------------------------------------------------------------------------
 */
 
-const {
+const currentEvent =
+  computed(() => {
 
-  errors,
+    return eventContextStore
+      .currentEvent
+  })
 
-  setError,
+const currentEventId =
+  computed(() => {
 
-  clearErrors,
-
-  hasErrors
-
-} = createValidation()
-
-
-/*
-|--------------------------------------------------------------------------
-| LOAD SCORING TYPES
-|--------------------------------------------------------------------------
-*/
-
-onMounted(async () => {
-
-  try {
-
-    const response = await getScoringTypes()
-    scoringTypes.value = response?.data || []
-
-  } catch (err) {
-
-    console.error(err)
-  }
-})
-
+    return eventContextStore
+      .currentEventId
+  })
 
 /*
-|--------------------------------------------------------------------------
-| SUBMIT SPORT
-|--------------------------------------------------------------------------
+------------------------------------------------------------------------------
+SUBMIT SPORT
+------------------------------------------------------------------------------
 */
 
 const submitSport =
   async () => {
 
     /*
-    ------------------------------------------------------------------------
-    PREVENT DUPLICATE SUBMITS
-    ------------------------------------------------------------------------
+    --------------------------------------------------------------------------
+    VALIDATE EVENT
+    --------------------------------------------------------------------------
     */
 
-    if (saving.value) {
+    if (!currentEventId.value) {
+
       return
     }
 
-    clearErrors()
-
     /*
-    ------------------------------------------------------------------------
-    SPORT NAME
-    ------------------------------------------------------------------------
+    --------------------------------------------------------------------------
+    VALIDATE FORM
+    --------------------------------------------------------------------------
     */
 
-    const sportNameError =
-      required(
+    if (
 
-        sportName.value,
+      !sportName.value ||
 
-        'Sport Name'
-      )
+      !scoringType.value
+    ) {
 
-    if (sportNameError) {
-
-      setError(
-
-        'sport_name',
-
-        sportNameError
-      )
-    }
-
-    /*
-    ------------------------------------------------------------------------
-    SCORING TYPE
-    ------------------------------------------------------------------------
-    */
-
-    const scoringTypeError =
-      required(
-
-        scoringTypeId.value,
-
-        'Scoring Type'
-      )
-
-    if (scoringTypeError) {
-
-      setError(
-
-        'scoring_type_id',
-
-        scoringTypeError
-      )
-    }
-
-    /*
-    ------------------------------------------------------------------------
-    STOP IF ERRORS
-    ------------------------------------------------------------------------
-    */
-
-    if (hasErrors()) {
       return
     }
 
@@ -198,26 +117,40 @@ const submitSport =
 
     try {
 
+      /*
+      ------------------------------------------------------------------------
+      CREATE EVENT SPORT
+      ------------------------------------------------------------------------
+      */
+
       await sportStore.addSport({
 
         sport_name:
           sportName.value,
 
-        scoring_type_id:
-          Number(scoringTypeId.value)
+        scoring_type:
+          scoringType.value
       })
 
       /*
-      ----------------------------------------------------------------------
+      ------------------------------------------------------------------------
       RESET FORM
-      ----------------------------------------------------------------------
+      ------------------------------------------------------------------------
       */
 
       sportName.value = ''
 
-      scoringTypeId.value = ''
+      scoringType.value = ''
+
+      /*
+      ------------------------------------------------------------------------
+      SUCCESS + CLOSE
+      ------------------------------------------------------------------------
+      */
 
       emit('success')
+
+      emit('close')
 
     } catch (err) {
 
@@ -228,117 +161,160 @@ const submitSport =
       saving.value = false
     }
   }
-
 </script>
 
 <template>
 
-  <div class="sport-form">
+  <div class="modal-overlay">
 
-    <!--
-    --------------------------------------------------------------------------
-    SPORT NAME
-    --------------------------------------------------------------------------
-    -->
+    <div class="sport-form-modal card-base">
 
-    <Input
-      id="sport-name"
-      name="sport_name"
-      v-model="sportName"
-      label="Sport Name"
-      placeholder="Enter sport name"
-      :error="errors.sport_name"
-    />
+      <!-- HEADER -->
 
-    <!--
-    --------------------------------------------------------------------------
-    SCORING TYPE
-    --------------------------------------------------------------------------
-    -->
+      <div class="form-header">
 
-    <div class="form-group">
+        <div>
 
-      <label
-        for="scoring-type"
-        class="form-label"
-      >
+          <h2>
+            Add Sport
+          </h2>
 
-        Scoring Type
+          <p>
+            Create a sport unique to this event.
+          </p>
 
-      </label>
+        </div>
 
-      <select
-
-        id="scoring-type"
-
-        name="scoring_type_id"
-
-        v-model="scoringTypeId"
-
-        class="form-select"
-
-        :class="{
-          'form-select-error':
-            errors.scoring_type_id
-        }"
-      >
-
-        <option
-          disabled
-          value=""
+        <button
+          class="close-btn"
+          @click="emit('close')"
         >
-          Select scoring type
-        </option>
+          <i class="fa-solid fa-xmark"></i>
+        </button>
 
-        <option
-          v-for="type in scoringTypes"
-          :key="type.scoring_type_id"
-          :value="type.scoring_type_id"
+      </div>
+
+      <!-- ACTIVE EVENT -->
+
+      <div
+        v-if="currentEvent"
+        class="active-event-banner"
+      >
+
+        <i class="fa-solid fa-calendar-days"></i>
+
+        <span>
+          {{ currentEvent.event_name }}
+        </span>
+
+      </div>
+
+      <!-- FORM -->
+
+      <div class="form-body">
+
+        <!-- SPORT NAME -->
+
+        <div class="form-group">
+
+          <label for="sport-name">
+            Sport Name
+          </label>
+
+          <input
+
+            id="sport-name"
+
+            v-model="sportName"
+
+            type="text"
+
+            class="form-input"
+
+            placeholder="Enter sport name"
+          />
+
+        </div>
+
+        <!-- SCORING TYPE -->
+
+        <div class="form-group">
+
+          <label for="scoring-type">
+            Scoring Type
+          </label>
+
+          <select
+
+            id="scoring-type"
+
+            v-model="scoringType"
+
+            class="form-input"
+          >
+
+            <option value="">
+              Select Scoring Type
+            </option>
+
+            <option
+
+              v-for="type in scoringTypes"
+
+              :key="type.value"
+
+              :value="type.value"
+            >
+              {{ type.label }}
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <!-- ACTIONS -->
+
+      <div class="form-actions">
+
+        <button
+
+          type="button"
+
+          class="cancel-btn"
+
+          @click="emit('close')"
         >
-          {{ type.type }}
-        </option>
+          Cancel
+        </button>
 
-      </select>
+        <button
 
-      <p
-        v-if="errors.scoring_type_id"
-        class="form-error-text"
-      >
-        {{ errors.scoring_type_id }}
-      </p>
+          type="button"
 
-    </div>
+          class="save-btn"
 
-    <!--
-    --------------------------------------------------------------------------
-    ACTIONS
-    --------------------------------------------------------------------------
-    -->
+          :disabled="saving"
 
-    <div class="sport-form-actions">
+          @click="submitSport"
+        >
 
-      <button
-        type="button"
+          <i
+            v-if="saving"
+            class="fa-solid fa-spinner fa-spin"
+          ></i>
 
-        class="cancel-btn"
+          <i
+            v-else
+            class="fa-solid fa-plus"
+          ></i>
 
-        @click="emit('close')"
-      >
-        Cancel
-      </button>
+          {{ saving ? 'Saving...' : 'Add Sport' }}
 
-      <PrimaryButton
+        </button>
 
-        label="Add Sport"
-        type="button"
-        icon="fas fa-plus"
-
-        :loading="saving"
-
-        :disabled="saving"
-
-        @click="submitSport"
-      />
+      </div>
 
     </div>
 
@@ -347,22 +323,103 @@ const submitSport =
 </template>
 
 <style scoped>
+.modal-overlay {
 
-.sport-form {
+  position: fixed;
+
+  inset: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 1rem;
+
+  background: rgba(0, 0, 0, 0.45);
+
+  z-index: 1000;
+}
+
+.sport-form-modal {
+
+  width: 100%;
+
+  max-width: 520px;
 
   display: flex;
 
   flex-direction: column;
 
-  gap: 20px;
+  gap: 1.5rem;
+
+  padding: 1.5rem;
+
+  border-radius: 18px;
+
+  background: white;
 }
 
+.form-header {
 
-/*
-|--------------------------------------------------------------------------
-| FORM GROUP
-|--------------------------------------------------------------------------
-*/
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+}
+
+.form-header h2 {
+
+  margin: 0;
+}
+
+.form-header p {
+
+  margin-top: 0.35rem;
+
+  color: #6b7280;
+}
+
+.close-btn {
+
+  border: none;
+
+  background: transparent;
+
+  font-size: 1.1rem;
+
+  cursor: pointer;
+}
+
+.active-event-banner {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  padding: 0.9rem 1rem;
+
+  border-radius: 12px;
+
+  background: #eff6ff;
+
+  color: #1d4ed8;
+
+  font-weight: 600;
+}
+
+.form-body {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 1rem;
+}
 
 .form-group {
 
@@ -370,97 +427,80 @@ const submitSport =
 
   flex-direction: column;
 
-  gap: 8px;
+  gap: 0.45rem;
 }
 
-.form-label {
-
-  font-weight: 700;
-
-  color:
-    var(--text-main);
-}
-
-.form-select {
-
-  padding: 12px;
-
-  border-radius:
-    var(--radius-md);
-
-  border:
-    1px solid var(--border-color);
-
-  background-color:
-    var(--white);
-
-  transition:
-    var(--transition-fast);
-
-  font-size: 14px;
-}
-
-.form-select:focus {
-
-  outline: none;
-
-  border-color:
-    var(--adnu-blue-light);
-
-  box-shadow:
-    0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-.form-select-error {
-
-  border-color:
-    var(--adnu-danger);
-}
-
-.form-error-text {
-
-  color:
-    var(--adnu-danger);
-
-  font-size: 12px;
+.form-group label {
 
   font-weight: 600;
 }
 
-button {
-  border: none;
+.form-input {
+
+  padding: 0.85rem 1rem;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 10px;
+
   outline: none;
-  padding: 12px 18px;
-  border-radius:
-    var(--radius-md);
-  cursor: pointer;
-  font-weight: 700;
-  transition: var(--transition-fast);
-  color: var(--white);
-  box-shadow: var(--shadow-sm);
-  background-color: var(--adnu-danger-strong);
 }
 
-button:hover {
-  background-color: var(--adnu-danger);
-  transition: var(--transition-fast);
+.form-input:focus {
+
+  border-color: #2563eb;
 }
 
-/*
-|--------------------------------------------------------------------------
-| ACTIONS
-|--------------------------------------------------------------------------
-*/
-
-.sport-form-actions {
+.form-actions {
 
   display: flex;
 
   justify-content: flex-end;
 
-  gap: 12px;
-
-  margin-top: 10px;
+  gap: 0.75rem;
 }
 
+.cancel-btn,
+.save-btn {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.5rem;
+
+  padding: 0.8rem 1rem;
+
+  border: none;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.cancel-btn {
+
+  background: #f3f4f6;
+}
+
+.save-btn {
+
+  background: #2563eb;
+
+  color: white;
+}
+
+.save-btn:hover {
+
+  background: #1d4ed8;
+}
+
+.save-btn:disabled {
+
+  opacity: 0.7;
+
+  cursor: not-allowed;
+}
 </style>
