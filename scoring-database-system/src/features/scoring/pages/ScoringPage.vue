@@ -1,129 +1,389 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
 
-import Modal from '@/components/common/Modal.vue'
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
-import { useEventContextStore } from '@/features/events/store/eventContextStore'
-import ScoringHeader from '../components/ScoringHeader.vue'
-import MatchCard from '../components/MatchCard.vue'
+import {
+  computed,
+  onMounted,
+  ref,
+  watch
+} from 'vue'
+
+import {
+  storeToRefs
+} from 'pinia'
+
+import {
+  useScoringStore
+} from '../store/scoringStore'
+
+import {
+  useEventContextStore
+} from '@/features/events/store/eventContextStore'
+
+import ScoreForm from '../components/ScoreForm.vue'
 import FinalizeMatchForm from '../components/FinalizeMatchForm.vue'
-import { useScoringStore } from '../store/scoringStore'
 
-const router = useRouter()
-const eventContextStore = useEventContextStore()
-const { currentEvent } = storeToRefs(eventContextStore)
+const scoringStore =
+  useScoringStore()
 
-const scoringStore = useScoringStore()
+const eventContextStore =
+  useEventContextStore()
+
 const {
+  scores,
   loading,
-  pendingGames,
-  finalizedGames
+  error
 } = storeToRefs(scoringStore)
 
-const { loadGames, finalizeGame } = scoringStore
+const currentEventId =
+  computed(() => {
 
-const openModal = ref(false)
-const selectedGame = ref(null)
+    return eventContextStore
+      .currentEventId
+  })
 
-const openFinalize = (game) => {
-  selectedGame.value = game
-  openModal.value = true
-}
+const showScoreModal =
+  ref(false)
 
-const closeModal = () => {
-  openModal.value = false
-  selectedGame.value = null
-}
+const showFinalizeModal =
+  ref(false)
 
-const handleFinalize = async (payload) => {
-  if (!selectedGame.value) {
-    return
+const selectedGame =
+  ref(null)
+
+/*
+|--------------------------------------------------------------------------
+| SAFE SCORES
+|--------------------------------------------------------------------------
+*/
+
+const safeScores =
+  computed(() => {
+
+    return Array.isArray(scores.value)
+
+      ? scores.value
+
+      : []
+  })
+
+/*
+|--------------------------------------------------------------------------
+| GROUP SCORES BY GAME
+|--------------------------------------------------------------------------
+*/
+
+const groupedScores =
+  computed(() => {
+
+    const grouped = {}
+
+    safeScores.value.forEach(score => {
+
+      const gameId =
+        score.game_id
+
+      if (!grouped[gameId]) {
+
+        grouped[gameId] = {
+
+          game_id:
+            gameId,
+
+          game_status:
+            score.game_status,
+
+          round:
+            score.round,
+
+          sport_name:
+            score.sport_name,
+
+          game_date:
+            score.game_date,
+
+          teams: []
+        }
+      }
+
+      grouped[gameId]
+        .teams
+        .push({
+
+          team_name:
+            score.team_name,
+
+          score_value:
+            score.score_value
+        })
+    })
+
+    return Object.values(grouped)
+  })
+
+/*
+|--------------------------------------------------------------------------
+| LOAD SCORES
+|--------------------------------------------------------------------------
+*/
+
+const loadPage =
+  async () => {
+
+    if (!currentEventId.value) {
+      return
+    }
+
+    await scoringStore.loadScores()
   }
-
-  await finalizeGame(selectedGame.value.game_id, payload)
-  closeModal()
-}
 
 onMounted(async () => {
-  if (!currentEvent.value) {
-    router.push('/events')
-    return
+
+  await loadPage()
+})
+
+watch(
+
+  currentEventId,
+
+  async () => {
+
+    await loadPage()
+  }
+)
+
+/*
+|--------------------------------------------------------------------------
+| MODAL ACTIONS
+|--------------------------------------------------------------------------
+*/
+
+const openFinalizeModal =
+  (game) => {
+
+    selectedGame.value =
+      game
+
+    showFinalizeModal.value =
+      true
   }
 
-  await loadGames()
-})
+const closeFinalizeModal =
+  () => {
+
+    selectedGame.value =
+      null
+
+    showFinalizeModal.value =
+      false
+  }
+
+const handleFinalizeSuccess =
+  async () => {
+
+    await scoringStore.loadScores()
+
+    closeFinalizeModal()
+  }
+
+const closeScoreModal =
+  () => {
+
+    showScoreModal.value =
+      false
+  }
+
+const handleScoreSuccess =
+  async () => {
+
+    await scoringStore.loadScores()
+
+    closeScoreModal()
+  }
+
 </script>
 
 <template>
-  <div class="scoring-page">
-    <div
-      v-if="currentEvent"
-      class="event-banner"
-    >
-      <span class="event-banner__label">Active Event</span>
-      <strong>{{ currentEvent.event_name }}</strong>
+
+  <section class="scoring-page">
+
+    <div class="page-header">
+
+      <div>
+
+        <h1>
+          Scoring
+        </h1>
+
+        <p>
+          Manage event game scores
+        </p>
+
+      </div>
+
+      <button
+        class="primary-btn"
+        @click="showScoreModal = true"
+      >
+        Add Score
+      </button>
+
     </div>
 
-    <ScoringHeader />
+    <!-- LOADING -->
 
-    <LoadingSpinner v-if="loading" />
-
-    <template v-else>
-      <section class="scoring-section">
-        <h2>Matches awaiting finalization</h2>
-
-        <div
-          v-if="!pendingGames.length"
-          class="empty-state"
-        >
-          No pending matches. Create games under the Games tab first.
-        </div>
-
-        <div
-          v-else
-          class="match-grid"
-        >
-          <MatchCard
-            v-for="game in pendingGames"
-            :key="game.game_id"
-            :game="game"
-            @finalize="openFinalize(game)"
-          />
-        </div>
-      </section>
-
-      <section
-        v-if="finalizedGames.length"
-        class="scoring-section"
-      >
-        <h2>Recently finalized</h2>
-
-        <div class="match-grid">
-          <MatchCard
-            v-for="game in finalizedGames"
-            :key="`final-${game.game_id}`"
-            :game="game"
-            finalized
-          />
-        </div>
-      </section>
-    </template>
-
-    <Modal
-      :is-open="openModal"
-      title="Finalize Match"
-      @close="closeModal"
+    <div
+      v-if="loading"
+      class="loading-state"
     >
-      <FinalizeMatchForm
-        v-if="selectedGame"
-        :game="selectedGame"
-        @submit="handleFinalize"
-        @cancel="closeModal"
-      />
-    </Modal>
-  </div>
+      Loading scores...
+    </div>
+
+    <!-- ERROR -->
+
+    <div
+      v-else-if="error"
+      class="error-state"
+    >
+      {{ error }}
+    </div>
+
+    <!-- EMPTY -->
+
+    <div
+      v-else-if="groupedScores.length === 0"
+      class="empty-state"
+    >
+      No scores available.
+    </div>
+
+    <!-- SCORE LIST -->
+
+    <div
+      v-else
+      class="score-grid"
+    >
+
+      <div
+
+        v-for="game in groupedScores"
+
+        :key="game.game_id"
+
+        class="score-card"
+      >
+
+        <div class="score-card-header">
+
+          <div>
+
+            <h3>
+              {{ game.sport_name }}
+            </h3>
+
+            <p>
+              {{ game.round }}
+            </p>
+
+          </div>
+
+          <span class="status-badge">
+            {{ game.game_status }}
+          </span>
+
+        </div>
+
+        <div class="teams-list">
+
+          <div
+
+            v-for="team in game.teams"
+
+            :key="team.team_name"
+
+            class="team-row"
+          >
+
+            <span>
+              {{ team.team_name }}
+            </span>
+
+            <strong>
+              {{ team.score_value }}
+            </strong>
+
+          </div>
+
+        </div>
+
+        <div class="score-card-footer">
+
+          <small>
+            {{ game.game_date }}
+          </small>
+
+          <button
+
+            class="secondary-btn"
+
+            @click="openFinalizeModal(game)"
+          >
+            Finalize
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- SCORE MODAL -->
+
+    <div
+      v-if="showScoreModal"
+      class="modal-overlay"
+    >
+
+      <div class="modal-content">
+
+        <ScoreForm
+
+          :game-scores="safeScores"
+
+          @success="handleScoreSuccess"
+
+          @close="closeScoreModal"
+        />
+
+      </div>
+
+    </div>
+
+    <!-- FINALIZE MODAL -->
+
+    <div
+      v-if="showFinalizeModal"
+      class="modal-overlay"
+    >
+
+      <div class="modal-content">
+
+        <FinalizeMatchForm
+
+          v-if="selectedGame"
+
+          :game="selectedGame"
+
+          @success="handleFinalizeSuccess"
+
+          @close="closeFinalizeModal"
+        />
+
+      </div>
+
+    </div>
+
+  </section>
+
 </template>
 
 <style scoped>
