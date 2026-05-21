@@ -1,122 +1,22 @@
-import api, { unwrapData } from '@/services/api'
+import api from '@/services/api'
 
 
-/*
-|--------------------------------------------------------------------------
-| GET SCORE COMPONENTS
-|--------------------------------------------------------------------------
-*/
-
-export const fetchJudgeScores = async () => {
-
-  const response = await api.get(
-    '/score-components'
-  )
-
-  return unwrapData(response)
+export const getJudgesByEvent = async (eventId) => {
+  const response = await api.get(`/events/${eventId}/judges`)
+  return response.data
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| CREATE SCORE COMPONENT
-|--------------------------------------------------------------------------
-*/
-
-export const createJudgeScore = async (
-  payload
-) => {
-
+export const createJudge = async (eventId, payload) => {
   const response = await api.post(
-    '/score-components',
+    `/events/${eventId}/judges`,
     payload
   )
-
-  return unwrapData(response)
+  return response.data
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| UPDATE SCORE COMPONENT
-|--------------------------------------------------------------------------
-*/
-
-export const updateJudgeScore = async (
-  scoreComponentId,
-  payload
-) => {
-
-  const response = await api.put(
-    `/score-components/${scoreComponentId}`,
-    payload
-  )
-
-  return unwrapData(response)
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| DELETE SCORE COMPONENT
-|--------------------------------------------------------------------------
-*/
-
-export const deleteJudgeScore = async (
-  scoreComponentId
-) => {
-
-  const response = await api.delete(
-    `/score-components/${scoreComponentId}`
-  )
-
-  return unwrapData(response)
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| GET GAME SCORES
-|--------------------------------------------------------------------------
-*/
-
-export const fetchGameScores = async () => {
-
-  const response = await api.get(
-    '/game-scores'
-  )
-
-  return unwrapData(response)
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| GET CRITERIA
-|--------------------------------------------------------------------------
-*/
-
-export const fetchCriteria = async () => {
-
-  const response = await api.get(
-    '/criteria'
-  )
-
-  return unwrapData(response)
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| GET JUDGES
-|--------------------------------------------------------------------------
-*/
-
-export const fetchJudges = async () => {
-
-  const response = await api.get(
-    '/judges'
-  )
-
-  return unwrapData(response)
+export const deleteJudge = async (judgeId) => {
+  const response = await api.delete(`/judges/${judgeId}`)
+  return response.data
 }

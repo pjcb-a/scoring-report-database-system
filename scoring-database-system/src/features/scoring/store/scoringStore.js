@@ -1,190 +1,69 @@
+import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { finalizeMatch } from '../services/scoringService'
+import { getGamesByEvent } from '@/features/games/services/gameService'
+import { useEventContextStore } from '@/features/events/store/eventContextStore'
+import { runAsync } from '@/utils/request'
 
-import {
+export const THRESHOLD_INCREMENTAL = 'Threshold Incremental'
+export const COMPONENT_SCORE = 'Component Score'
 
-  fetchScores,
+const isNonComponentGame = (game) =>
+  game.scoring_type !== COMPONENT_SCORE
 
-  createScore,
+export const useScoringStore = defineStore('scoringStore', () => {
+  const games = ref([])
+  const loading = ref(false)
+  const error = ref(null)
 
-  updateScore,
+  const eventContextStore = useEventContextStore()
 
-  deleteScore,
-
-  fetchGames,
-
-  fetchTeams
-
-} from '../services/scoringService'
-
-
-const scores = ref([])
-
-const games = ref([])
-
-const teams = ref([])
-
-const loading = ref(false)
-
-const error = ref(null)
-
-
-const totalScores = computed(() => {
-  return scores.value.length
-})
-
-const winnerScores = computed(() => {
-
-  return scores.value.filter(
-    score => score.isWinner
-  ).length
-})
-
-
-const loadScores = async () => {
-
-  loading.value = true
-
-  error.value = null
-
-  try {
-
-    scores.value =
-      await fetchScores()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to load scores.'
-
-  } finally {
-
-    loading.value = false
-  }
-}
-
-
-const loadGames = async () => {
-
-  try {
-
-    games.value =
-      await fetchGames()
-
-  } catch (err) {
-
-    console.error(err)
-  }
-}
-
-
-const loadTeams = async () => {
-
-  try {
-
-    teams.value =
-      await fetchTeams()
-
-  } catch (err) {
-
-    console.error(err)
-  }
-}
-
-
-const addScore = async (
-  payload
-) => {
-
-  try {
-
-    await createScore(payload)
-
-    await loadScores()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to create score.'
-  }
-}
-
-
-const editScore = async (
-  scoreId,
-  payload
-) => {
-
-  try {
-
-    await updateScore(
-      scoreId,
-      payload
+  const pendingGames = computed(() =>
+    games.value.filter(
+      game => !game.is_finalized && isNonComponentGame(game)
     )
+  )
 
-    await loadScores()
+  const finalizedGames = computed(() =>
+    games.value.filter(
+      game => game.is_finalized && isNonComponentGame(game)
+    )
+  )
 
-  } catch (err) {
+  const loadGames = async () => {
+    if (!eventContextStore.currentEventId) {
+      return
+    }
 
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to update score.'
+    await runAsync({ loading, error }, async () => {
+      const response = await getGamesByEvent(
+        eventContextStore.currentEventId
+      )
+      games.value = response.data || []
+    })
   }
-}
 
-
-const removeScore = async (
-  scoreId
-) => {
-
-  try {
-
-    await deleteScore(scoreId)
-
-    await loadScores()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to delete score.'
+  const finalizeGame = async (gameId, payload) => {
+    await runAsync(
+      { loading, error },
+      async () => {
+        await finalizeMatch(gameId, payload)
+        await loadGames()
+      },
+      {
+        showSuccessToast: true,
+        successMessage: 'Match finalized successfully.'
+      }
+    )
   }
-}
-
-
-export function useScoringStore() {
 
   return {
-
-    scores,
-
     games,
-
-    teams,
-
     loading,
-
     error,
-
-    totalScores,
-
-    winnerScores,
-
-    loadScores,
-
+    pendingGames,
+    finalizedGames,
     loadGames,
-
-    loadTeams,
-
-    addScore,
-
-    editScore,
-
-    removeScore
+    finalizeGame
   }
-}
+})

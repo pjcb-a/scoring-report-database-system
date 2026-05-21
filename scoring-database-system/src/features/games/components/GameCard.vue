@@ -52,8 +52,18 @@ const formatDateTime =
 
       </div>
 
-      <span class="game-status-badge">
-        {{ game.game_status }}
+      <span
+        class="game-status-badge"
+        :class="{
+          'game-status-badge--pending': !game.is_finalized,
+          'game-status-badge--done': game.is_finalized
+        }"
+      >
+        {{
+          game.is_finalized
+            ? game.game_status
+            : 'Scheduled'
+        }}
       </span>
 
     </div>
@@ -91,6 +101,16 @@ const formatDateTime =
           {{ formatDateTime(game.end_date) }}
         </span>
 
+      </div>
+
+      <div
+        v-if="game.set_count"
+        class="game-detail-item"
+      >
+        <i class="fa-solid fa-layer-group"></i>
+        <span>
+          {{ game.set_count }} sets (finalize in Scoring)
+        </span>
       </div>
 
       <div
@@ -197,15 +217,25 @@ const formatDateTime =
 
   border-radius: 999px;
 
-  background: #dbeafe;
-
-  color: #1d4ed8;
-
   font-size: 0.75rem;
 
   font-weight: 600;
 
   white-space: nowrap;
+}
+
+.game-status-badge--pending {
+
+  background: #fef3c7;
+
+  color: #92400e;
+}
+
+.game-status-badge--done {
+
+  background: #dbeafe;
+
+  color: #1d4ed8;
 }
 
 .game-details {

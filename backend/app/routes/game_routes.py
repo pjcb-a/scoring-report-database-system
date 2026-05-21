@@ -7,6 +7,9 @@ from app.models.game_score import GameScore
 from app.models.event import Event
 from app.models.event_sport import EventSport
 from app.models.team import Team
+from app.models.criteria import Criteria
+from app.models.judge import Judge
+from app.models.score_component import ScoreComponent
 
 
 ALLOWED_GAME_STATUSES = {
@@ -14,6 +17,9 @@ ALLOWED_GAME_STATUSES = {
     'Forfeit',
     'Suspensions'
 }
+
+THRESHOLD_INCREMENTAL = 'Threshold Incremental'
+COMPONENT_SCORE = 'Component Score'
 
 from app.routes.utils import (
     parse_datetime,
@@ -149,12 +155,7 @@ def create_game(event_id):
             payload.get('game_name')
         )
 
-        game_status = clean_string(
-            payload.get(
-                'game_status',
-                'Win'
-            )
-        ) or 'Win'
+        set_count_raw = payload.get('set_count')
 
         team_ids_raw = payload.get(
             'team_ids',
@@ -195,15 +196,6 @@ def create_game(event_id):
             ] = [
 
                 'Event sport is required.'
-            ]
-
-        if game_status not in ALLOWED_GAME_STATUSES:
-
-            validation_errors[
-                'game_status'
-            ] = [
-
-                'Game status must be Win, Forfeit, or Suspensions.'
             ]
 
         if not isinstance(team_ids_raw, list):
@@ -310,6 +302,51 @@ def create_game(event_id):
 
             validated_teams.append(team)
 
+        scoring_type_name = (
+            event_sport.sport.scoring_type.type
+            if event_sport.sport
+            and event_sport.sport.scoring_type
+            else None
+        )
+
+        set_count = None
+
+        if scoring_type_name == THRESHOLD_INCREMENTAL:
+
+            try:
+
+                set_count = int(set_count_raw)
+
+            except (TypeError, ValueError):
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'set_count': [
+                            'Number of sets is required for Threshold Incremental sports.'
+                        ]
+                    },
+
+                    status_code=400
+                )
+
+            if set_count < 1:
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'set_count': [
+                            'Number of sets must be at least 1.'
+                        ]
+                    },
+
+                    status_code=400
+                )
+
         start_date, start_error = parse_datetime(
             start_raw,
             'Start time'
@@ -380,9 +417,13 @@ def create_game(event_id):
 
             venue_name=venue_name,
 
-            game_status=game_status,
+            game_status='Pending',
 
-            round=round_name
+            round=round_name,
+
+            set_count=set_count,
+
+            is_finalized=False
         )
 
         db.session.add(game)
@@ -572,29 +613,6 @@ def update_game(game_id):
                 or payload.get('venue')
             )
 
-        if 'game_status' in payload:
-
-            next_status = clean_string(
-                payload.get('game_status')
-            ) or game.game_status
-
-            if next_status not in ALLOWED_GAME_STATUSES:
-
-                return error_response(
-
-                    message='Validation failed.',
-
-                    errors={
-                        'game_status': [
-                            'Game status must be Win, Forfeit, or Suspensions.'
-                        ]
-                    },
-
-                    status_code=400
-                )
-
-            game.game_status = next_status
-
         if 'round' in payload:
 
             game.round = clean_string(
@@ -632,6 +650,381 @@ def update_game(game_id):
 | Deletes a game.
 |
 """
+
+
+@game_bp.route(
+    '/games/<int:game_id>/finalize',
+    methods=['POST']
+)
+def finalize_game(game_id):
+    try:
+        game = Game.query.get(game_id)
+
+        if not game:
+            return error_response(
+                message='Game not found.',
+                status_code=404
+            )
+
+        if game.is_finalized:
+            return error_response(
+                message='This match is already finalized.',
+                status_code=400
+            )
+
+        payload = request.get_json()
+
+        if not payload:
+            return error_response(
+                message='Request body is required.',
+                status_code=400
+            )
+
+        game_status = clean_string(
+            payload.get('game_status')
+        )
+
+        if game_status not in ALLOWED_GAME_STATUSES:
+            return error_response(
+                message='Validation failed.',
+                errors={
+                    'game_status': [
+                        'Game status must be Win, Forfeit, or Suspensions.'
+                    ]
+                },
+                status_code=400
+            )
+
+        team_entries = payload.get('teams', [])
+
+        if not isinstance(team_entries, list) or not team_entries:
+            return error_response(
+                message='Validation failed.',
+                errors={
+                    'teams': ['Provide score data for each team in this match.']
+                },
+                status_code=400
+            )
+
+        scoring_type_name = (
+            game.event_sport.sport.scoring_type.type
+            if game.event_sport
+            and game.event_sport.sport
+            and game.event_sport.sport.scoring_type
+            else None
+        )
+
+        is_threshold = scoring_type_name == THRESHOLD_INCREMENTAL
+        is_component = scoring_type_name == COMPONENT_SCORE
+
+        game_scores_by_team = {
+            score.team_id: score
+            for score in game.game_scores
+        }
+
+        if set(game_scores_by_team.keys()) != {
+            int(entry.get('team_id'))
+            for entry in team_entries
+            if entry.get('team_id') is not None
+        }:
+            return error_response(
+                message='Validation failed.',
+                errors={
+                    'teams': ['Score data must be provided for every team in this match.']
+                },
+                status_code=400
+            )
+
+        if is_component:
+            criteria_list = Criteria.query.filter_by(
+                event_sport_id=game.event_sport_id
+            ).all()
+
+            if not criteria_list:
+                return error_response(
+                    message='Validation failed.',
+                    errors={
+                        'criteria': [
+                            'This sport has no criteria. Add criteria on the Judging tab first.'
+                        ]
+                    },
+                    status_code=400
+                )
+
+            criteria_by_id = {
+                criterion.criteria_id: criterion
+                for criterion in criteria_list
+            }
+
+            judges = Judge.query.filter_by(
+                event_id=game.event_id
+            ).all()
+
+            if not judges:
+                return error_response(
+                    message='Validation failed.',
+                    errors={
+                        'judges': [
+                            'Add at least one judge on the Judging tab before finalizing.'
+                        ]
+                    },
+                    status_code=400
+                )
+
+            judges_by_id = {
+                judge.judge_id: judge
+                for judge in judges
+            }
+
+            expected_pairs = {
+                (judge.judge_id, criterion.criteria_id)
+                for judge in judges
+                for criterion in criteria_list
+            }
+
+        winners = 0
+
+        for entry in team_entries:
+            team_id = entry.get('team_id')
+
+            try:
+                team_id = int(team_id)
+            except (TypeError, ValueError):
+                return error_response(
+                    message='Validation failed.',
+                    errors={'teams': ['Each team entry requires a valid team_id.']},
+                    status_code=400
+                )
+
+            game_score = game_scores_by_team.get(team_id)
+
+            if not game_score:
+                return error_response(
+                    message='Invalid team for this match.',
+                    status_code=400
+                )
+
+            if is_component:
+                judge_scores = entry.get('judge_scores', [])
+
+                if not isinstance(judge_scores, list):
+                    return error_response(
+                        message='Validation failed.',
+                        errors={
+                            'judge_scores': [
+                                'Judge scores must be provided as a list.'
+                            ]
+                        },
+                        status_code=400
+                    )
+
+                received_pairs = set()
+                judge_weighted_totals = {}
+
+                for judge_score in judge_scores:
+                    criteria_id = judge_score.get('criteria_id')
+                    judge_id = judge_score.get('judge_id')
+                    score_value = judge_score.get('score_value')
+
+                    try:
+                        criteria_id = int(criteria_id)
+                        judge_id = int(judge_id)
+                        score_value = float(score_value)
+                    except (TypeError, ValueError):
+                        return error_response(
+                            message='Validation failed.',
+                            errors={
+                                'judge_scores': [
+                                    'Each judge score must include valid numbers.'
+                                ]
+                            },
+                            status_code=400
+                        )
+
+                    pair = (judge_id, criteria_id)
+
+                    if pair in received_pairs:
+                        return error_response(
+                            message='Validation failed.',
+                            errors={
+                                'judge_scores': [
+                                    'Duplicate score for the same judge and criteria.'
+                                ]
+                            },
+                            status_code=400
+                        )
+
+                    received_pairs.add(pair)
+
+                    criterion = criteria_by_id.get(criteria_id)
+
+                    if not criterion:
+                        return error_response(
+                            message='Invalid criteria for this sport.',
+                            status_code=400
+                        )
+
+                    if judge_id not in judges_by_id:
+                        return error_response(
+                            message='Invalid judge for this event.',
+                            status_code=400
+                        )
+
+                    weighted_score = (
+                        score_value * (float(criterion.percentage) / 100)
+                    )
+
+                    judge_weighted_totals[judge_id] = (
+                        judge_weighted_totals.get(judge_id, 0.0)
+                        + weighted_score
+                    )
+
+                    db.session.add(
+                        ScoreComponent(
+                            game_score_id=game_score.game_score_id,
+                            criteria_id=criteria_id,
+                            judge_id=judge_id,
+                            score_value=score_value,
+                            weighted_score=weighted_score
+                        )
+                    )
+
+                if received_pairs != expected_pairs:
+                    return error_response(
+                        message='Validation failed.',
+                        errors={
+                            'judge_scores': [
+                                'Provide a score from every judge for every criteria for each team.'
+                            ]
+                        },
+                        status_code=400
+                    )
+
+                game_score.total_score = (
+                    sum(judge_weighted_totals.values())
+                    / len(judge_weighted_totals)
+                )
+                game_score.rank_position = None
+                game_score.set_scores = None
+                game_score.sets_won = None
+
+            elif is_threshold:
+                set_scores = entry.get('set_scores', [])
+
+                if not isinstance(set_scores, list):
+                    return error_response(
+                        message='Validation failed.',
+                        errors={
+                            'set_scores': ['Set scores must be provided as a list.']
+                        },
+                        status_code=400
+                    )
+
+                if len(set_scores) != game.set_count:
+                    return error_response(
+                        message='Validation failed.',
+                        errors={
+                            'set_scores': [
+                                f'Provide exactly {game.set_count} set scores for each team.'
+                            ]
+                        },
+                        status_code=400
+                    )
+
+                try:
+                    parsed_set_scores = [float(value) for value in set_scores]
+                except (TypeError, ValueError):
+                    return error_response(
+                        message='Validation failed.',
+                        errors={
+                            'set_scores': ['Each set score must be a valid number.']
+                        },
+                        status_code=400
+                    )
+
+                sets_won = entry.get('sets_won')
+
+                try:
+                    sets_won = int(sets_won)
+                except (TypeError, ValueError):
+                    return error_response(
+                        message='Validation failed.',
+                        errors={
+                            'sets_won': ['Sets won is required for each team.']
+                        },
+                        status_code=400
+                    )
+
+                game_score.set_scores = parsed_set_scores
+                game_score.sets_won = sets_won
+                game_score.total_score = float(sum(parsed_set_scores))
+                game_score.rank_position = None
+
+            else:
+                total_score = entry.get('total_score')
+
+                if total_score is None:
+                    total_score = entry.get('score_value')
+
+                if total_score is None:
+                    return error_response(
+                        message='Validation failed.',
+                        errors={
+                            'total_score': ['Score value is required for each team.']
+                        },
+                        status_code=400
+                    )
+
+                game_score.total_score = float(total_score)
+                game_score.set_scores = None
+                game_score.sets_won = None
+
+                rank_position = entry.get('rank_position')
+
+                if rank_position == '':
+                    rank_position = None
+
+                if rank_position is not None:
+                    try:
+                        game_score.rank_position = int(rank_position)
+                    except (TypeError, ValueError):
+                        return error_response(
+                            message='Validation failed.',
+                            errors={
+                                'rank_position': ['Rank position must be a valid integer.']
+                            },
+                            status_code=400
+                        )
+                else:
+                    game_score.rank_position = None
+
+            is_winner = entry.get('is_winner')
+
+            if is_winner is None:
+                is_winner = entry.get('isWinner', False)
+
+            game_score.is_winner = bool(is_winner)
+
+            if game_score.is_winner:
+                winners += 1
+
+        game.game_status = game_status
+        game.is_finalized = True
+
+        db.session.commit()
+
+        return success_response(
+            data=game.to_dict(),
+            message='Match finalized successfully.'
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message='Failed to finalize match.',
+            errors=[str(e)],
+            status_code=500
+        )
 
 
 @game_bp.route(

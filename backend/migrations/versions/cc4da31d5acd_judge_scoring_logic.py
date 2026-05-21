@@ -1,8 +1,8 @@
-"""update aaaas
+"""judge scoring logic
 
-Revision ID: 2383112004e9
+Revision ID: cc4da31d5acd
 Revises: 
-Create Date: 2026-05-21 18:44:35.305970
+Create Date: 2026-05-22 03:26:02.967221
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '2383112004e9'
+revision = 'cc4da31d5acd'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -88,6 +88,8 @@ def upgrade():
     sa.Column('venue_name', sa.String(length=150), nullable=True),
     sa.Column('game_status', sa.String(length=50), nullable=False),
     sa.Column('round', sa.String(length=100), nullable=True),
+    sa.Column('set_count', sa.Integer(), nullable=True),
+    sa.Column('is_finalized', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['event_id'], ['events.event_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['event_sport_id'], ['event_sports.event_sport_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('game_id')
@@ -100,6 +102,8 @@ def upgrade():
     sa.Column('total_score', sa.Float(), nullable=False),
     sa.Column('rank_position', sa.Integer(), nullable=True),
     sa.Column('is_winner', sa.Boolean(), nullable=False),
+    sa.Column('set_scores', sa.JSON(), nullable=True),
+    sa.Column('sets_won', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['event_id'], ['events.event_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['game_id'], ['games.game_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['team_id'], ['teams.team_id'], ondelete='CASCADE'),

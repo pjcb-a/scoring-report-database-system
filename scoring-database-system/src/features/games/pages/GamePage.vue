@@ -79,7 +79,8 @@ onMounted(async () => {
         </h1>
 
         <p>
-          Manage event games.
+          Schedule matches. Set count is captured here for set-based sports;
+          finalize scores and match status in Scoring.
         </p>
       </div>
 

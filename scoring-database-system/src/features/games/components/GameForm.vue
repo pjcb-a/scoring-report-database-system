@@ -1,6 +1,6 @@
 <script setup>
 
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import Input
   from '@/components/ui/Input.vue'
@@ -70,8 +70,8 @@ const endTime =
 const venue =
   ref('')
 
-const gameStatus =
-  ref('Win')
+const setCount =
+  ref('')
 
 const round =
   ref('')
@@ -87,6 +87,21 @@ const eventSports =
 
 const eventTeams =
   ref([])
+
+const selectedEventSport =
+  computed(() =>
+    eventSports.value.find(
+      sport =>
+        Number(sport.event_sport_id)
+        === Number(eventSportId.value)
+    )
+  )
+
+const isThresholdIncremental =
+  computed(() =>
+    selectedEventSport.value?.scoring_type
+    === 'Threshold Incremental'
+  )
 
 const {
 
@@ -178,22 +193,33 @@ const submitGame =
       )
     }
 
-    const gameStatusError =
-      required(
+    if (isThresholdIncremental.value) {
 
-        gameStatus.value,
+      const setCountError =
+        required(
 
-        'Game Status'
-      )
+          setCount.value,
 
-    if (gameStatusError) {
+          'Number of sets'
+        )
 
-      setError(
+      if (setCountError) {
 
-        'game_status',
+        setError(
 
-        gameStatusError
-      )
+          'set_count',
+
+          setCountError
+        )
+      } else if (Number(setCount.value) < 1) {
+
+        setError(
+
+          'set_count',
+
+          'Number of sets must be at least 1.'
+        )
+      }
     }
 
     if (!selectedTeamIds.value.length) {
@@ -214,7 +240,7 @@ const submitGame =
 
     try {
 
-      await gameStore.addGame({
+      const payload = {
 
         event_sport_id:
           Number(eventSportId.value),
@@ -228,9 +254,6 @@ const submitGame =
         venue_name:
           venue.value.trim() || null,
 
-        game_status:
-          gameStatus.value,
-
         round:
           round.value.trim() || null,
 
@@ -238,7 +261,15 @@ const submitGame =
           selectedTeamIds.value.map(
             id => Number(id)
           )
-      })
+      }
+
+      if (isThresholdIncremental.value) {
+
+        payload.set_count =
+          Number(setCount.value)
+      }
+
+      await gameStore.addGame(payload)
 
       eventSportId.value = ''
 
@@ -248,7 +279,7 @@ const submitGame =
 
       venue.value = ''
 
-      gameStatus.value = 'Win'
+      setCount.value = ''
 
       round.value = ''
 
@@ -305,6 +336,7 @@ const submitGame =
           :value="sport.event_sport_id"
         >
           {{ sport.sport_name }}
+          ({{ sport.scoring_type }})
         </option>
 
       </select>
@@ -406,48 +438,24 @@ const submitGame =
       placeholder="Enter venue"
     />
 
-    <div class="form-group">
+    <Input
+      v-if="isThresholdIncremental"
+      id="set-count"
+      name="set_count"
+      v-model="setCount"
+      type="number"
+      min="1"
+      label="Number of sets played"
+      placeholder="e.g. 3"
+      :error="errors.set_count"
+    />
 
-      <label
-        for="game-status"
-        class="form-label"
-      >
-        Game Status
-      </label>
-
-      <select
-        id="game-status"
-        name="game_status"
-        v-model="gameStatus"
-        class="form-select"
-        :class="{
-          'form-select-error':
-            errors.game_status
-        }"
-      >
-
-        <option value="Win">
-          Win
-        </option>
-
-        <option value="Forfeit">
-          Forfeit
-        </option>
-
-        <option value="Suspensions">
-          Suspensions
-        </option>
-
-      </select>
-
-      <p
-        v-if="errors.game_status"
-        class="form-error-text"
-      >
-        {{ errors.game_status }}
-      </p>
-
-    </div>
+    <p
+      v-if="isThresholdIncremental"
+      class="form-hint"
+    >
+      Set scores are entered later when you finalize the match in Scoring.
+    </p>
 
     <Input
       id="round"

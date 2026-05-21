@@ -1,19 +1,9 @@
-import api from '@/services/axios'
+import api from '@/services/api'
 
 
-/*
-|--------------------------------------------------------------------------
-| GET EVENT RANKINGS
-|--------------------------------------------------------------------------
-*/
-
-export const getEventRankings =
-  async (eventId) => {
-
-    const response = await api.get(
-
-      `/events/${eventId}/reports/rankings`
-    )
-
-    return response.data
+export const getMatchReports = async (eventId) => {
+  const response = await api.get(
+    `/events/${eventId}/reports/matches`
+  )
+  return response.data
 }

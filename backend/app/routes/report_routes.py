@@ -1,197 +1,101 @@
 from flask import Blueprint
 
-from sqlalchemy import func
-
 from app.models.event import Event
-from app.models.team import Team
-from app.models.game_score import GameScore
+from app.models.game import Game
 
 from app.utils.responses import (
-
     success_response,
-
     error_response
 )
 
 
 report_bp = Blueprint(
-
     'report_bp',
-
     __name__
 )
 
 
-"""
-|--------------------------------------------------------------------------
-| EVENT RANKINGS REPORT
-|--------------------------------------------------------------------------
-|
-| Returns rankings for an event.
-|
-"""
-
-
 @report_bp.route(
-
-    '/events/<int:event_id>/reports/rankings',
-
+    '/events/<int:event_id>/reports/matches',
     methods=['GET']
 )
-def get_event_rankings(event_id):
-
+def get_event_match_reports(event_id):
     try:
-
         event = Event.query.get(event_id)
 
         if not event:
-
             return error_response(
-
                 message='Event not found.',
-
                 status_code=404
             )
 
-        rankings = db.session.query(
-
-            Team.team_id,
-
-            Team.team_name,
-
-            Team.team_color,
-
-            func.coalesce(
-
-                func.sum(
-                    GameScore.score_value
-                ),
-
-                0
-
-            ).label('total_score')
-
-        ).outerjoin(
-
-            GameScore,
-
-            Team.team_id == GameScore.team_id
-
-        ).filter(
-
-            Team.event_id == event_id
-
-        ).group_by(
-
-            Team.team_id
-
+        games = Game.query.filter_by(
+            event_id=event_id,
+            is_finalized=True
         ).order_by(
-
-            func.sum(
-                GameScore.score_value
-            ).desc()
-
+            Game.start_date.desc()
         ).all()
 
-        formatted_rankings = [
-
-            {
-
-                'team_id':
-                    ranking.team_id,
-
-                'team_name':
-                    ranking.team_name,
-
-                'team_color':
-                    ranking.team_color,
-
-                'total_score':
-                    float(
-                        ranking.total_score or 0
-                    )
-            }
-
-            for ranking in rankings
-        ]
+        data = [game.to_dict() for game in games]
 
         return success_response(
-
-            data=formatted_rankings,
-
-            message='Rankings fetched successfully.'
+            data=data,
+            message='Match reports fetched successfully.'
         )
 
     except Exception as e:
-
         return error_response(
-
-            message='Failed to generate rankings.',
-
+            message='Failed to generate match reports.',
             errors=[str(e)],
-
             status_code=500
         )
 
 
-"""
-|--------------------------------------------------------------------------
-| EVENT SCORE SUMMARY
-|--------------------------------------------------------------------------
-|
-| Returns scoring summary for reports.
-|
-"""
-
-
 @report_bp.route(
-
     '/events/<int:event_id>/reports/scores',
-
     methods=['GET']
 )
 def get_event_scores_report(event_id):
-
     try:
-
         event = Event.query.get(event_id)
 
         if not event:
-
             return error_response(
-
                 message='Event not found.',
-
                 status_code=404
             )
 
-        scores = GameScore.query.filter_by(
-
-            event_id=event_id
-
+        games = Game.query.filter_by(
+            event_id=event_id,
+            is_finalized=True
         ).all()
 
-        data = [
+        data = []
 
-            score.to_dict()
-
-            for score in scores
-        ]
+        for game in games:
+            for score in game.game_scores:
+                entry = score.to_dict()
+                entry['game_name'] = game.game_name
+                entry['round'] = game.round
+                entry['game_status'] = game.game_status
+                entry['set_count'] = game.set_count
+                entry['scoring_type'] = (
+                    game.event_sport.sport.scoring_type.type
+                    if game.event_sport
+                    and game.event_sport.sport
+                    and game.event_sport.sport.scoring_type
+                    else None
+                )
+                data.append(entry)
 
         return success_response(
-
             data=data,
-
             message='Score report generated successfully.'
         )
 
     except Exception as e:
-
         return error_response(
-
             message='Failed to generate score report.',
-
             errors=[str(e)],
-
             status_code=500
         )

@@ -27,7 +27,6 @@ import {
 
 } from '../services/sportService'
 
-
 /*
 ------------------------------------------------------------------------------
 EMITS
@@ -69,6 +68,8 @@ const scoringTypes = ref([])
 
 const loadingScoringTypes = ref(false)
 
+const formError = ref('')
+
 /*
 ------------------------------------------------------------------------------
 COMPUTED
@@ -87,6 +88,16 @@ const currentEventId =
 
     return eventContextStore
       .currentEventId
+  })
+
+const selectedScoringTypeLabel =
+  computed(() => {
+
+    const match = scoringTypes.value.find(
+      type => Number(type.value) === Number(scoringTypeId.value)
+    )
+
+    return match?.label || ''
   })
 
 /*
@@ -171,12 +182,16 @@ const submitSport =
     --------------------------------------------------------------------------
     */
 
+    formError.value = ''
+
     if (
 
       !sportName.value ||
 
       !scoringTypeId.value
     ) {
+
+      formError.value = 'Sport name and scoring type are required.'
 
       return
     }
@@ -209,6 +224,8 @@ const submitSport =
       sportName.value = ''
 
       scoringTypeId.value = ''
+
+      formError.value = ''
 
       /*
       ------------------------------------------------------------------------
@@ -341,6 +358,20 @@ const submitSport =
           </select>
 
         </div>
+
+        <p
+          v-if="selectedScoringTypeLabel === 'Component Score'"
+          class="form-hint"
+        >
+          Define criteria and judges on the Judging tab after creating this sport.
+        </p>
+
+        <p
+          v-if="formError"
+          class="form-error"
+        >
+          {{ formError }}
+        </p>
 
       </div>
 
@@ -572,5 +603,20 @@ const submitSport =
   opacity: 0.7;
 
   cursor: not-allowed;
+}
+
+.form-error,
+.form-hint {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.form-error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.form-hint {
+  color: #6b7280;
 }
 </style>

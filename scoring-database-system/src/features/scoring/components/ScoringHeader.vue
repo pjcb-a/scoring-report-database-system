@@ -1,44 +1,26 @@
 <script setup>
-import PrimaryButton from '@/components/ui/PrimaryButton.vue'
-
-defineEmits(['add'])
 </script>
 
 <template>
-
   <div class="page-header">
-
     <div>
-
-      <h1>
-        Scoring
-      </h1>
-
+      <h1>Scoring</h1>
       <p>
-        Manage competition scores and rankings.
+        Finalize matches for Win/Lose, Incremental, Threshold Incremental, and Ranked Timed sports.
+        Component Score matches are finalized under the Judging tab.
       </p>
-
     </div>
-
-    <PrimaryButton
-      @click="$emit('add')"
-    >
-      Add Score
-    </PrimaryButton>
-
   </div>
-
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.page-header h1 {
+  margin: 0;
 }
 
 .page-header p {
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--text-muted);
+  max-width: 640px;
 }
 </style>

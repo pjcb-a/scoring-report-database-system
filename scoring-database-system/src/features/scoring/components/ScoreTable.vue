@@ -44,7 +44,7 @@ defineProps({
           </td>
 
           <td>
-            {{ score.score_value }}
+            {{ score.total_score }}
           </td>
 
           <td>
@@ -55,13 +55,13 @@ defineProps({
 
             <Badge
               :variant="
-                score.isWinner
+                score.is_winner
                   ? 'success'
                   : 'primary'
               "
             >
               {{
-                score.isWinner
+                score.is_winner
                   ? 'Winner'
                   : 'Participant'
               }}

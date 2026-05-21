@@ -16,6 +16,7 @@ import {
 
 } from '../services/sportService'
 
+
 import {
 
   useEventContextStore
@@ -139,12 +140,6 @@ const addSport =
 
         payload
       )
-
-      /*
-      ------------------------------------------------------------------------
-      REFRESH SPORTS
-      ------------------------------------------------------------------------
-      */
 
       await loadSports()
 

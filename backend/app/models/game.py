@@ -92,7 +92,7 @@ class Game(db.Model):
 
         nullable=False,
 
-        default="Win"
+        default="Pending"
     )
 
     round = db.Column(
@@ -100,6 +100,22 @@ class Game(db.Model):
         db.String(100),
 
         nullable=True
+    )
+
+    set_count = db.Column(
+
+        db.Integer,
+
+        nullable=True
+    )
+
+    is_finalized = db.Column(
+
+        db.Boolean,
+
+        nullable=False,
+
+        default=False
     )
 
     """
@@ -186,6 +202,21 @@ class Game(db.Model):
             "round":
                 self.round,
 
+            "set_count":
+                self.set_count,
+
+            "is_finalized":
+                self.is_finalized,
+
+            "scoring_type":
+                self.event_sport.sport.scoring_type.type
+                if (
+                    self.event_sport
+                    and self.event_sport.sport
+                    and self.event_sport.sport.scoring_type
+                )
+                else None,
+
             "teams": [
                 {
                     "team_id":
@@ -201,6 +232,11 @@ class Game(db.Model):
                         if score.team
                         else None
                 }
+                for score in (self.game_scores or [])
+            ],
+
+            "scores": [
+                score.to_dict()
                 for score in (self.game_scores or [])
             ]
         }

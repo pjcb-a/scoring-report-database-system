@@ -109,6 +109,20 @@ class GameScore(db.Model):
         default=False
     )
 
+    set_scores = db.Column(
+
+        db.JSON,
+
+        nullable=True
+    )
+
+    sets_won = db.Column(
+
+        db.Integer,
+
+        nullable=True
+    )
+
     """
     --------------------------------------------------------------------------
     RELATIONSHIPS
@@ -202,5 +216,19 @@ class GameScore(db.Model):
                 self.rank_position,
 
             "is_winner":
-                self.is_winner
+                self.is_winner,
+
+            "set_scores":
+                self.set_scores or [],
+
+            "sets_won":
+                self.sets_won,
+
+            "game_id":
+                self.game_id,
+
+            "score_components": [
+                component.to_dict()
+                for component in (self.score_components or [])
+            ]
         }

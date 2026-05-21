@@ -1,213 +1,87 @@
+import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { finalizeMatch } from '@/features/scoring/services/scoringService'
+import { getGamesByEvent } from '@/features/games/services/gameService'
+import { getJudgesByEvent } from '../services/judgingService'
+import { useEventContextStore } from '@/features/events/store/eventContextStore'
+import { runAsync } from '@/utils/request'
 
-import {
+export const COMPONENT_SCORE = 'Component Score'
 
-  fetchJudgeScores,
+const isComponentGame = (game) =>
+  game.scoring_type === COMPONENT_SCORE
 
-  createJudgeScore,
+export const useJudgingStore = defineStore('judgingStore', () => {
+  const games = ref([])
+  const judges = ref([])
+  const loading = ref(false)
+  const error = ref(null)
 
-  updateJudgeScore,
+  const eventContextStore = useEventContextStore()
 
-  deleteJudgeScore,
-
-  fetchGameScores,
-
-  fetchCriteria,
-
-  fetchJudges
-
-} from '../services/judgingService'
-
-
-const judgeScores = ref([])
-
-const gameScores = ref([])
-
-const criteria = ref([])
-
-const judges = ref([])
-
-const loading = ref(false)
-
-const error = ref(null)
-
-
-const totalJudgeScores = computed(() => {
-  return judgeScores.value.length
-})
-
-const totalJudges = computed(() => {
-  return judges.value.length
-})
-
-
-const loadJudgeScores = async () => {
-
-  loading.value = true
-  error.value = null
-
-  try {
-
-    judgeScores.value =
-      await fetchJudgeScores()
-
-  } catch (err) {
-
-    console.error(err)
-
-    error.value =
-      err.message || 'Failed to load judge scores.'
-
-  } finally {
-
-    loading.value = false
-  }
-}
-
-
-const loadGameScores = async () => {
-
-  try {
-
-    gameScores.value =
-      await fetchGameScores()
-
-  } catch (err) {
-
-    console.error(err)
-    error.value =
-      err.message || 'Failed to load game scores.'
-  }
-}
-
-
-const loadCriteria = async () => {
-
-  try {
-
-    criteria.value =
-      await fetchCriteria()
-
-  } catch (err) {
-
-    console.error(err)
-    error.value =
-      err.message || 'Failed to load criteria.'
-  }
-}
-
-
-const loadJudges = async () => {
-
-  try {
-
-    judges.value =
-      await fetchJudges()
-
-  } catch (err) {
-
-    console.error(err)
-    error.value =
-      err.message || 'Failed to load judges.'
-  }
-}
-
-
-const addJudgeScore = async (
-  payload
-) => {
-
-  try {
-
-    await createJudgeScore(payload)
-
-    await loadJudgeScores()
-
-  } catch (err) {
-
-    console.error(err)
-    error.value =
-      err.message || 'Failed to create judge score.'
-  }
-}
-
-
-const editJudgeScore = async (
-  scoreComponentId,
-  payload
-) => {
-
-  try {
-
-    await updateJudgeScore(
-      scoreComponentId,
-      payload
+  const pendingGames = computed(() =>
+    games.value.filter(
+      game => !game.is_finalized && isComponentGame(game)
     )
+  )
 
-    await loadJudgeScores()
-
-  } catch (err) {
-
-    console.error(err)
-    error.value =
-      err.message || 'Failed to update judge score.'
-  }
-}
-
-
-const removeJudgeScore = async (
-  scoreComponentId
-) => {
-
-  try {
-
-    await deleteJudgeScore(
-      scoreComponentId
+  const finalizedGames = computed(() =>
+    games.value.filter(
+      game => game.is_finalized && isComponentGame(game)
     )
+  )
 
-    await loadJudgeScores()
+  const loadGames = async () => {
+    if (!eventContextStore.currentEventId) {
+      return
+    }
 
-  } catch (err) {
-
-    console.error(err)
-    error.value =
-      err.message || 'Failed to delete judge score.'
+    await runAsync({ loading, error }, async () => {
+      const response = await getGamesByEvent(
+        eventContextStore.currentEventId
+      )
+      games.value = response.data || []
+    })
   }
-}
 
+  const loadJudges = async () => {
+    if (!eventContextStore.currentEventId) {
+      return
+    }
 
-export function useJudgingStore() {
+    try {
+      const response = await getJudgesByEvent(
+        eventContextStore.currentEventId
+      )
+      judges.value = response.data || []
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const finalizeGame = async (gameId, payload) => {
+    await runAsync(
+      { loading, error },
+      async () => {
+        await finalizeMatch(gameId, payload)
+        await loadGames()
+      },
+      {
+        showSuccessToast: true,
+        successMessage: 'Match finalized successfully.'
+      }
+    )
+  }
 
   return {
-
-    judgeScores,
-
-    gameScores,
-
-    criteria,
-
+    games,
     judges,
-
     loading,
-
     error,
-
-    totalJudgeScores,
-
-    totalJudges,
-
-    loadJudgeScores,
-
-    loadGameScores,
-
-    loadCriteria,
-
+    pendingGames,
+    finalizedGames,
+    loadGames,
     loadJudges,
-
-    addJudgeScore,
-
-    editJudgeScore,
-
-    removeJudgeScore
+    finalizeGame
   }
-}
+})

@@ -15,6 +15,7 @@ import ScoringPage from '@/features/scoring/pages/ScoringPage.vue'
 import JudgePage from '@/features/judging/pages/JudgePage.vue'
 import ReportsPage from '@/features/reports/pages/ReportsPage.vue'
 import { useEventContextStore } from '@/features/events/store/eventContextStore'
+import { fetchEvent } from '@/features/events/services/eventService'
 import { cancelAllPendingRequests } from '@/services/api'
 
 /*
@@ -146,44 +147,37 @@ const router = createRouter({
 |
 */
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
+  cancelAllPendingRequests(`Navigated to ${to.path}`)
 
-  /*
-  --------------------------------------------------------------------------
-  CANCEL PREVIOUS REQUESTS
-  --------------------------------------------------------------------------
-  */
+  const eventContextStore = useEventContextStore()
 
-  cancelAllPendingRequests(
+  if (!to.meta.requiresEvent) {
+    return true
+  }
 
-    `Navigated to ${to.path}`
-  )
+  const routeEventId = Number(to.params.eventId)
 
-  /*
-  --------------------------------------------------------------------------
-  EVENT CONTEXT
-  --------------------------------------------------------------------------
-  */
+  if (!routeEventId) {
+    return '/events'
+  }
 
-  const eventContextStore =
-    useEventContextStore()
+  if (eventContextStore.currentEventId !== routeEventId) {
+    try {
+      const response = await fetchEvent(routeEventId)
+      const event = response.data?.data
 
-  /*
-  --------------------------------------------------------------------------
-  ROUTES REQUIRING EVENT
-  --------------------------------------------------------------------------
-  */
+      if (!event?.event_id) {
+        return '/events'
+      }
 
-  if (
+      eventContextStore.setCurrentEvent(event)
+    } catch {
+      return '/events'
+    }
+  }
 
-    to.meta.requiresEvent
-
-    &&
-
-    !eventContextStore.hasSelectedEvent
-
-  ) {
-
+  if (!eventContextStore.hasSelectedEvent) {
     return '/events'
   }
 
