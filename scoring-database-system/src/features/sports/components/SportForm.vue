@@ -61,7 +61,7 @@ STATE
 
 const sportName = ref('')
 
-const scoringType = ref('')
+const scoringTypeId = ref('')
 
 const saving = ref(false)
 
@@ -114,7 +114,7 @@ const fetchScoringTypes =
       scoringTypes.value =
         response.data.map(type => ({
 
-          value: type.scoring_name,
+          value: type.scoring_type_id,
 
           label: type.scoring_name
         }))
@@ -175,7 +175,7 @@ const submitSport =
 
       !sportName.value ||
 
-      !scoringType.value
+      !scoringTypeId.value
     ) {
 
       return
@@ -196,8 +196,8 @@ const submitSport =
         sport_name:
           sportName.value,
 
-        scoring_type:
-          scoringType.value
+        scoring_type_id:
+          scoringTypeId.value
       })
 
       /*
@@ -208,7 +208,7 @@ const submitSport =
 
       sportName.value = ''
 
-      scoringType.value = ''
+      scoringTypeId.value = ''
 
       /*
       ------------------------------------------------------------------------
@@ -316,13 +316,15 @@ const submitSport =
 
             id="scoring-type"
 
-            v-model="scoringType"
+            v-model="scoringTypeId"
 
             class="form-input"
+
+            :disabled="loadingScoringTypes"
           >
 
             <option value="">
-              Select Scoring Type
+              {{ loadingScoringTypes ? 'Loading...' : 'Select Scoring Type' }}
             </option>
 
             <option
