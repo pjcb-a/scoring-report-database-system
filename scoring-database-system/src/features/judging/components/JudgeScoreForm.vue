@@ -17,7 +17,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'submit'
+  'success',
+  'close'
 ])
 
 const form = reactive({
@@ -186,9 +187,39 @@ const submitForm = () => {
 
     <div class="form-actions">
 
-      <PrimaryButton>
-        Save Judge Score
-      </PrimaryButton>
+     <button
+
+      type="button"
+
+      class="cancel-btn"
+
+      @click="$emit('close')"
+    >
+      Cancel
+    </button>
+
+    <button
+
+      type="submit"
+
+      class="save-btn"
+
+      :disabled="saving"
+    >
+
+      <i
+        v-if="saving"
+        class="fa-solid fa-spinner fa-spin"
+      ></i>
+
+      <i
+        v-else
+        class="fa-solid fa-check"
+      ></i>
+
+      {{ saving ? 'Saving...' : 'Submit Score' }}
+
+    </button>
 
     </div>
 

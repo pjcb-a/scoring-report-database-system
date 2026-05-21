@@ -17,27 +17,6 @@ export const getScoringTypes =
     return response.data
   }
 
-
-/*
-|--------------------------------------------------------------------------
-| GET MASTER SPORTS
-|--------------------------------------------------------------------------
-|
-| Global reusable sport types
-|
-*/
-
-export const getSports =
-  async () => {
-
-    const response = await api.get(
-      '/sports'
-    )
-
-    return response.data
-  }
-
-
 /*
 |--------------------------------------------------------------------------
 | GET EVENT SPORTS
@@ -54,27 +33,6 @@ export const getSportsByEvent =
 
     return response.data
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| CREATE MASTER SPORT
-|--------------------------------------------------------------------------
-*/
-
-export const createSport =
-  async (payload) => {
-
-    const response = await api.post(
-
-      '/sports',
-
-      payload
-    )
-
-    return response.data
-}
-
 
 /*
 |--------------------------------------------------------------------------
