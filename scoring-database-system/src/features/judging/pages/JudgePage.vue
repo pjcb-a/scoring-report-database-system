@@ -28,6 +28,7 @@ const { loadGames, loadJudges, finalizeGame } = judgingStore
 
 const openModal = ref(false)
 const selectedGame = ref(null)
+const finalizeFormRef = ref(null)
 
 const openFinalize = async (game) => {
   await loadJudges()
@@ -45,8 +46,15 @@ const handleFinalize = async (payload) => {
     return
   }
 
-  await finalizeGame(selectedGame.value.game_id, payload)
-  closeModal()
+  try {
+    await finalizeGame(selectedGame.value.game_id, payload)
+    closeModal()
+  } catch (err) {
+    console.error(err)
+    finalizeFormRef.value?.setFormError?.(
+      err.message || 'Failed to finalize match.'
+    )
+  }
 }
 
 onMounted(async () => {
@@ -61,14 +69,6 @@ onMounted(async () => {
 
 <template>
   <div class="judging-page">
-    <div
-      v-if="currentEvent"
-      class="event-banner"
-    >
-      <span class="event-banner__label">Active Event</span>
-      <strong>{{ currentEvent.event_name }}</strong>
-    </div>
-
     <JudgingHeader />
 
     <JudgingSetupPanel />
@@ -123,6 +123,7 @@ onMounted(async () => {
     >
       <JudgingFinalizeMatchForm
         v-if="selectedGame"
+        ref="finalizeFormRef"
         :game="selectedGame"
         :judges="judges"
         @submit="handleFinalize"
@@ -137,23 +138,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.event-banner {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 18px;
-  border-radius: 12px;
-  background: var(--color-surface-alt, #f4f6fb);
-  border: 1px solid var(--color-border, #e2e8f0);
-}
-
-.event-banner__label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted, #64748b);
 }
 
 .judging-section h2 {

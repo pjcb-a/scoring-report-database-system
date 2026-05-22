@@ -8,6 +8,8 @@ import {
 } from '../services/judgingService'
 import { getGamesByEvent } from '@/features/games/services/gameService'
 import { useEventContextStore } from '@/features/events/store/eventContextStore'
+import { useGameStore } from '@/features/games/store/gameStore'
+import { isFinalizedGame, isScheduledGame } from '@/utils/gameLifecycle'
 
 export const useJudgingStore = defineStore(
   'judgingStore',
@@ -40,19 +42,20 @@ export const useJudgingStore = defineStore(
     | COMPUTED - PENDING & FINALIZED GAMES
     |--------------------------------------------------------------------------
     */
-    const pendingGames = computed(() => {
-      return games.value.filter(game => 
-        game.sport?.scoring_type === 'component' && 
-        game.status !== 'finalized'
-      )
-    })
+    const isComponentGame = (game) =>
+      game.scoring_type === 'Component Score'
 
-    const finalizedGames = computed(() => {
-      return games.value.filter(game => 
-        game.sport?.scoring_type === 'component' && 
-        game.status === 'finalized'
+    const pendingGames = computed(() =>
+      games.value.filter(
+        game => isComponentGame(game) && isScheduledGame(game)
       )
-    })
+    )
+
+    const finalizedGames = computed(() =>
+      games.value.filter(
+        game => isComponentGame(game) && isFinalizedGame(game)
+      )
+    )
 
     /*
     |--------------------------------------------------------------------------
@@ -163,6 +166,8 @@ export const useJudgingStore = defineStore(
         try {
           await finalizeJudgeGameService(gameId, payload)
           await loadGames()
+          const gameStore = useGameStore()
+          await gameStore.loadGames()
         } catch (err) {
           console.error(err)
           error.value = err.message || 'Failed to finalize game.'

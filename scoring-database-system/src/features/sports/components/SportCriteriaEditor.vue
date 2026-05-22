@@ -8,6 +8,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  existingPercentage: {
+    type: Number,
+    default: 0
+  },
   readonly: {
     type: Boolean,
     default: false
@@ -17,7 +21,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const draftName = ref('')
-const draftPercentage = ref('')
+const draftPercentageInput = ref('')
 const localError = ref('')
 
 const criteria = computed({
@@ -25,22 +29,28 @@ const criteria = computed({
   set: (value) => emit('update:modelValue', value)
 })
 
-const totalPercentage = computed(() =>
+const draftCriteriaTotal = computed(() =>
   criteria.value.reduce(
     (sum, item) => sum + Number(item.percentage || 0),
     0
   )
 )
 
+const totalPercentage = computed(() =>
+  Number(props.existingPercentage || 0) + draftCriteriaTotal.value
+)
+
 const remainingPercentage = computed(() =>
   Math.max(0, 100 - totalPercentage.value)
 )
+
+const canAddMore = computed(() => totalPercentage.value < 100)
 
 const addCriteria = () => {
   localError.value = ''
 
   const name = draftName.value.trim()
-  const percentage = Number(draftPercentage.value)
+  const percentage = Number(draftPercentageInput.value)
 
   if (!name) {
     localError.value = 'Criteria name is required.'
@@ -66,7 +76,7 @@ const addCriteria = () => {
   ]
 
   draftName.value = ''
-  draftPercentage.value = ''
+  draftPercentageInput.value = ''
 }
 
 const removeCriteria = (index) => {
@@ -116,8 +126,15 @@ const removeCriteria = (index) => {
       </li>
     </ul>
 
+    <p
+      v-if="!readonly && !canAddMore"
+      class="criteria-capacity-hint"
+    >
+      Criteria total is at 100%. Remove a saved or draft criterion to add another.
+    </p>
+
     <div
-      v-if="!readonly"
+      v-else-if="!readonly"
       class="criteria-add"
     >
       <Input
@@ -126,7 +143,7 @@ const removeCriteria = (index) => {
         placeholder="e.g. Technique"
       />
       <Input
-        v-model="draftPercentage"
+        v-model="draftPercentageInput"
         label="Percentage"
         type="number"
         min="0"
@@ -141,10 +158,9 @@ const removeCriteria = (index) => {
       </p>
       <PrimaryButton
         type="button"
+        label="Add criteria"
         @click="addCriteria"
-      >
-        Add criteria
-      </PrimaryButton>
+      />
     </div>
   </div>
 </template>
@@ -236,5 +252,17 @@ const removeCriteria = (index) => {
   color: #b91c1c;
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.criteria-capacity-hint {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 </style>

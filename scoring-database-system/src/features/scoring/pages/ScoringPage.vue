@@ -3,12 +3,15 @@ import { computed, onMounted, ref, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEventContextStore } from '@/features/events/store/eventContextStore'
 import { getGamesByEvent } from '@/features/games/services/gameService'
+import { isFinalizedGame, isScheduledGame } from '@/utils/gameLifecycle'
+import { useGameStore } from '@/features/games/store/gameStore'
 import MatchCard from '../components/MatchCard.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import FinalizeMatchForm from '../components/FinalizeMatchForm.vue'
 
 const eventContextStore = useEventContextStore()
-const { currentEvent, currentEventId } = storeToRefs(eventContextStore)
+const gameStore = useGameStore()
+const { currentEventId } = storeToRefs(eventContextStore)
 
 const games = ref([])
 const loading = ref(false)
@@ -16,22 +19,20 @@ const error = ref(null)
 const showFinalizeModal = ref(false)
 const selectedGame = ref(null)
 
-// Filter for non-component score games
-const nonComponentGames = computed(() => {
-  return games.value.filter(game => {
-    const scoringType = game.sport?.scoring_type || game.scoring_type || ''
-    return scoringType.toLowerCase() !== 'component' && 
-           scoringType !== 'Component Score'
-  })
-})
+const isComponentGame = (game) =>
+  game.scoring_type === 'Component Score'
 
-const pendingGames = computed(() => {
-  return nonComponentGames.value.filter(game => game.status !== 'finalized')
-})
+const nonComponentGames = computed(() =>
+  games.value.filter(game => !isComponentGame(game))
+)
 
-const finalizedGames = computed(() => {
-  return nonComponentGames.value.filter(game => game.status === 'finalized')
-})
+const pendingGames = computed(() =>
+  nonComponentGames.value.filter(isScheduledGame)
+)
+
+const finalizedGames = computed(() =>
+  nonComponentGames.value.filter(isFinalizedGame)
+)
 
 const loadGames = async () => {
   if (!currentEventId.value) {
@@ -45,8 +46,6 @@ const loadGames = async () => {
   try {
     const response = await getGamesByEvent(currentEventId.value)
     games.value = response?.data || []
-    console.log('Loaded games:', games.value)
-    console.log('Non-component games:', nonComponentGames.value)
   } catch (err) {
     console.error('Error loading games:', err)
     error.value = err.message || 'Failed to load games.'
@@ -68,6 +67,7 @@ const closeFinalizeModal = () => {
 
 const handleFinalizeSuccess = async () => {
   await loadGames()
+  await gameStore.loadGames()
   closeFinalizeModal()
 }
 
@@ -81,14 +81,6 @@ onMounted(async () => {
 
 <template>
   <div class="scoring-page">
-    <div
-      v-if="currentEvent"
-      class="event-banner"
-    >
-      <span class="event-banner__label">Active Event</span>
-      <strong>{{ currentEvent.event_name }}</strong>
-    </div>
-
     <div class="scoring-header">
       <h1>Scoring</h1>
       <p>Manage and finalize non-component score matches</p>
@@ -103,9 +95,17 @@ onMounted(async () => {
       {{ error }}
     </div>
 
-    <template v-else>
+    <div
+      v-else
+      class="scoring-body"
+    >
       <section class="scoring-section">
-        <h2>Matches awaiting finalization</h2>
+        <header class="scoring-section__header">
+          <h2>Matches awaiting finalization</h2>
+          <p class="scoring-section__hint">
+            Enter scores and mark a winner to finalize each match.
+          </p>
+        </header>
 
         <div
           v-if="!pendingGames.length"
@@ -129,9 +129,14 @@ onMounted(async () => {
 
       <section
         v-if="finalizedGames.length"
-        class="scoring-section"
+        class="scoring-section scoring-section--finalized"
       >
-        <h2>Recently finalized</h2>
+        <header class="scoring-section__header">
+          <h2>Recently finalized</h2>
+          <p class="scoring-section__hint">
+            Concluded matches with outcome and scores on record.
+          </p>
+        </header>
 
         <div class="match-grid">
           <MatchCard
@@ -142,7 +147,7 @@ onMounted(async () => {
           />
         </div>
       </section>
-    </template>
+    </div>
 
     <!-- FINALIZE MODAL -->
     <div
@@ -165,53 +170,71 @@ onMounted(async () => {
 .scoring-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 0;
+  max-width: 1200px;
 }
 
-.event-banner {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 18px;
-  border-radius: 12px;
-  background: var(--color-surface-alt, #f4f6fb);
-  border: 1px solid var(--color-border, #e2e8f0);
-}
-
-.event-banner__label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted, #64748b);
+.scoring-header {
+  margin-bottom: 28px;
 }
 
 .scoring-header h1 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 8px;
   font-size: 1.75rem;
 }
 
 .scoring-header p {
   margin: 0;
   color: var(--text-muted, #64748b);
+  line-height: 1.5;
 }
 
-.scoring-section h2 {
-  margin: 0 0 14px;
-  font-size: 1.1rem;
+.scoring-body {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.scoring-section {
+  margin: 0;
+}
+
+.scoring-section--finalized {
+  padding-top: 32px;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+}
+
+.scoring-section__header {
+  margin: 0 0 20px;
+}
+
+.scoring-section__header h2 {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.scoring-section__hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted, #64748b);
+  line-height: 1.45;
 }
 
 .match-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
 }
 
 .empty-state {
-  padding: 2rem;
+  margin: 0;
+  padding: 28px 24px;
   border-radius: 12px;
   background: white;
   text-align: center;
   color: var(--text-muted);
+  line-height: 1.5;
   border: 1px solid var(--border-color, #e2e8f0);
 }
 
@@ -240,7 +263,7 @@ onMounted(async () => {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  max-width: 600px;
+  max-width: 680px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;

@@ -20,6 +20,12 @@ import {
 
 } from '../services/eventService'
 
+import {
+
+  useEventContextStore
+
+} from './eventContextStore'
+
 
 export const useEventStore = defineStore(
 
@@ -67,7 +73,8 @@ export const useEventStore = defineStore(
         return events.value.filter(
 
           event =>
-            event.status === 'Active'
+            event.status === 'Ongoing'
+            || event.status === 'Active'
 
         ).length
       })
@@ -246,14 +253,33 @@ export const useEventStore = defineStore(
 
         try {
 
-          await updateEvent(
+          const response =
+            await updateEvent(
+              eventId,
+              payload
+            )
 
-            eventId,
-
-            payload
-          )
+          const updatedEvent =
+            response?.data?.data
 
           await loadEvents()
+
+          const eventContextStore =
+            useEventContextStore()
+
+          const refreshedEvent =
+            events.value.find(
+              item =>
+                Number(item.event_id)
+                === Number(eventId)
+            )
+            || updatedEvent
+
+          eventContextStore.syncCurrentEvent(
+            refreshedEvent
+          )
+
+          return refreshedEvent || updatedEvent
 
         } catch (err) {
 
@@ -266,6 +292,8 @@ export const useEventStore = defineStore(
             ||
 
             'Failed to update event.'
+
+          throw err
 
         } finally {
 

@@ -70,6 +70,28 @@ export const useEventContextStore = defineStore(
         )
       }
 
+    const syncCurrentEvent =
+      (updatedEvent) => {
+
+        if (!updatedEvent?.event_id) {
+          return
+        }
+
+        if (
+          Number(currentEvent.value?.event_id)
+          !== Number(updatedEvent.event_id)
+        ) {
+          return
+        }
+
+        const mergedEvent = {
+          ...currentEvent.value,
+          ...updatedEvent
+        }
+
+        setCurrentEvent(mergedEvent)
+      }
+
     /*
     --------------------------------------------------------------------------
     CLEAR CURRENT EVENT
@@ -153,6 +175,8 @@ export const useEventContextStore = defineStore(
       */
 
       setCurrentEvent,
+
+      syncCurrentEvent,
 
       clearCurrentEvent,
 

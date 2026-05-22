@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, request
 
 from app.extensions import db
@@ -10,6 +12,34 @@ from app.utils.responses import (
 
     error_response
 )
+
+ALLOWED_EVENT_STATUSES = {
+    'Upcoming',
+    'Ongoing',
+    'Completed',
+    'Active'
+}
+
+
+def normalize_event_status(status):
+    if status == 'Active':
+        return 'Ongoing'
+    if status in {'Upcoming', 'Ongoing', 'Completed'}:
+        return status
+    return None
+
+
+def parse_event_date(value, field_label):
+    if value is None or value == '':
+        return None, f'{field_label} is required.'
+
+    if isinstance(value, date):
+        return value, None
+
+    try:
+        return date.fromisoformat(str(value)[:10]), None
+    except (TypeError, ValueError):
+        return None, f'{field_label} must be a valid date.'
 
 
 event_bp = Blueprint(
@@ -216,6 +246,42 @@ def create_event():
                 'End day is required.'
             ]
 
+        normalized_status = normalize_event_status(status)
+
+        if not normalized_status:
+
+            validation_errors['status'] = [
+                'Status must be Upcoming, Ongoing, or Completed.'
+            ]
+
+        start_date, start_error = parse_event_date(
+            start_day,
+            'Start day'
+        )
+
+        if start_error:
+
+            validation_errors['start_day'] = [start_error]
+
+        end_date, end_error = parse_event_date(
+            end_day,
+            'End day'
+        )
+
+        if end_error:
+
+            validation_errors['end_day'] = [end_error]
+
+        if (
+            start_date
+            and end_date
+            and end_date < start_date
+        ):
+
+            validation_errors['end_day'] = [
+                'End day cannot be before start day.'
+            ]
+
         if validation_errors:
 
             return error_response(
@@ -237,11 +303,11 @@ def create_event():
 
             event_name=event_name,
 
-            start_day=start_day,
+            start_day=start_date,
 
-            end_day=end_day,
+            end_day=end_date,
 
-            status=status
+            status=normalized_status
         )
 
         db.session.add(new_event)
@@ -313,39 +379,100 @@ def update_event(event_id):
                 status_code=400
             )
 
-        """
-        ----------------------------------------------------------------------
-        UPDATE FIELDS
-        ----------------------------------------------------------------------
-        """
+        validation_errors = {}
 
-        event.event_name = payload.get(
+        if 'event_name' in payload:
 
-            'event_name',
+            event_name = payload.get('event_name')
 
-            event.event_name
+            if not event_name:
+
+                validation_errors['event_name'] = [
+                    'Event name is required.'
+                ]
+            else:
+
+                event.event_name = event_name
+
+        start_day_value = (
+            payload.get('start_day')
+            if 'start_day' in payload
+            else None
         )
 
-        event.start_day = payload.get(
+        end_day_value = (
+            payload.get('end_day')
+            if 'end_day' in payload
+            else None
+        )
 
-            'start_day',
+        start_date = event.start_day
 
+        end_date = event.end_day
+
+        if start_day_value is not None:
+
+            start_date, start_error = parse_event_date(
+                start_day_value,
+                'Start day'
+            )
+
+            if start_error:
+
+                validation_errors['start_day'] = [start_error]
+            else:
+
+                event.start_day = start_date
+
+        if end_day_value is not None:
+
+            end_date, end_error = parse_event_date(
+                end_day_value,
+                'End day'
+            )
+
+            if end_error:
+
+                validation_errors['end_day'] = [end_error]
+            else:
+
+                event.end_day = end_date
+
+        if (
             event.start_day
-        )
+            and event.end_day
+            and event.end_day < event.start_day
+        ):
 
-        event.end_day = payload.get(
+            validation_errors['end_day'] = [
+                'End day cannot be before start day.'
+            ]
 
-            'end_day',
+        if 'status' in payload:
 
-            event.end_day
-        )
+            normalized_status = normalize_event_status(
+                payload.get('status')
+            )
 
-        event.status = payload.get(
+            if not normalized_status:
 
-            'status',
+                validation_errors['status'] = [
+                    'Status must be Upcoming, Ongoing, or Completed.'
+                ]
+            else:
 
-            event.status
-        )
+                event.status = normalized_status
+
+        if validation_errors:
+
+            return error_response(
+
+                message='Validation failed.',
+
+                errors=validation_errors,
+
+                status_code=400
+            )
 
         db.session.commit()
 

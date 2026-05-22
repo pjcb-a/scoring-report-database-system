@@ -106,7 +106,7 @@ export const finalizeJudgeGameService =
     const response =
       await api.post(
 
-        `/judge-games/${gameId}/finalize`,
+        `/games/${gameId}/finalize`,
 
         payload
       )

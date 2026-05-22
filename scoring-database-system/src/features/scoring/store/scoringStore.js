@@ -6,6 +6,7 @@ import {
   finalizeGameService
 } from '../services/scoringService'
 import { useEventContextStore } from '@/features/events/store/eventContextStore'
+import { useGameStore } from '@/features/games/store/gameStore'
 
 export const useScoringStore = defineStore(
   'scoringStore',
@@ -92,7 +93,8 @@ export const useScoringStore = defineStore(
 
         try {
           await finalizeGameService(gameId, payload)
-          await loadScores()
+          const gameStore = useGameStore()
+          await gameStore.loadGames()
         } catch (err) {
           console.error(err)
           error.value = err.message || 'Failed to finalize game.'

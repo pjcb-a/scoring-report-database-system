@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import SportCriteriaEditor from './SportCriteriaEditor.vue'
 import {
   getCriteriaByEventSport,
@@ -79,11 +79,21 @@ const removeSavedCriteria = async (criteriaId) => {
     criteria.value = criteria.value.filter(
       item => item.criteria_id !== criteriaId
     )
+    error.value = ''
   } catch (err) {
     console.error(err)
     error.value = 'Failed to delete criteria.'
   }
 }
+
+const savedTotal = computed(() =>
+  criteria.value.reduce(
+    (sum, item) => sum + Number(item.percentage || 0),
+    0
+  )
+)
+
+const canAddCriteria = computed(() => savedTotal.value < 100)
 
 onMounted(loadCriteria)
 </script>
@@ -124,7 +134,18 @@ onMounted(loadCriteria)
       No criteria yet.
     </p>
 
-    <SportCriteriaEditor v-model="draftCriteria" />
+    <SportCriteriaEditor
+      v-if="canAddCriteria || draftCriteria.length"
+      v-model="draftCriteria"
+      :existing-percentage="savedTotal"
+    />
+
+    <p
+      v-else-if="!loading && savedTotal >= 100"
+      class="criteria-manager__capacity"
+    >
+      Criteria total is at 100%. Remove a criterion above to add more.
+    </p>
 
     <p
       v-if="error"
@@ -134,6 +155,7 @@ onMounted(loadCriteria)
     </p>
 
     <button
+      v-if="canAddCriteria || draftCriteria.length"
       type="button"
       class="save-btn"
       :disabled="saving || !draftCriteria.length"
@@ -163,6 +185,18 @@ onMounted(loadCriteria)
   color: #b91c1c;
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.criteria-manager__capacity {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .saved-criteria {

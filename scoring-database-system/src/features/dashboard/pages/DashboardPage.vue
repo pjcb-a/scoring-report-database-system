@@ -55,7 +55,7 @@ const {
 
   totalGames,
 
-  totalScores,
+  totalTeams,
 
   recentGames,
 
@@ -92,13 +92,13 @@ onMounted(async () => {
 
       <h1 class="dashboard-title">
 
-        {{ currentEvent?.event_name }}
+        Dashboard
 
       </h1>
 
       <p class="dashboard-subtitle">
 
-        Event Dashboard Overview
+        Overview for {{ currentEvent?.event_name }}
 
       </p>
 
@@ -134,9 +134,9 @@ onMounted(async () => {
 
       <div class="dashboard-card">
 
-        <h3>Total Scores</h3>
+        <h3>Total Teams</h3>
 
-        <p>{{ totalScores }}</p>
+        <p>{{ totalTeams }}</p>
 
       </div>
 

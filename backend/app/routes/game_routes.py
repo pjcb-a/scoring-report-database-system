@@ -73,11 +73,25 @@ def get_event_games(event_id):
                 status_code=404
             )
 
-        games = Game.query.filter_by(
+        scheduled_only = request.args.get(
+            'scheduled_only',
+            'false'
+        ).lower() in (
+            '1',
+            'true',
+            'yes'
+        )
 
+        query = Game.query.filter_by(
             event_id=event_id
+        )
 
-        ).all()
+        if scheduled_only:
+            query = query.filter_by(
+                is_finalized=False
+            )
+
+        games = query.all()
 
         data = [
 
@@ -504,6 +518,15 @@ def update_game(game_id):
                 status_code=404
             )
 
+        if game.is_finalized:
+
+            return error_response(
+
+                message='Finalized matches cannot be edited. View them under Reports.',
+
+                status_code=400
+            )
+
         payload = request.get_json()
 
         if not payload:
@@ -514,6 +537,14 @@ def update_game(game_id):
 
                 status_code=400
             )
+
+        scoring_type_name = (
+            game.event_sport.sport.scoring_type.type
+            if game.event_sport
+            and game.event_sport.sport
+            and game.event_sport.sport.scoring_type
+            else None
+        )
 
         if 'game_name' in payload:
 
@@ -618,6 +649,168 @@ def update_game(game_id):
             game.round = clean_string(
                 payload.get('round')
             )
+
+        if 'set_count' in payload:
+
+            if scoring_type_name != THRESHOLD_INCREMENTAL:
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'set_count': [
+                            'Set count applies only to Threshold Incremental sports.'
+                        ]
+                    },
+
+                    status_code=400
+                )
+
+            try:
+
+                set_count = int(payload.get('set_count'))
+
+            except (TypeError, ValueError):
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'set_count': [
+                            'Number of sets must be a valid integer.'
+                        ]
+                    },
+
+                    status_code=400
+                )
+
+            if set_count < 1:
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'set_count': [
+                            'Number of sets must be at least 1.'
+                        ]
+                    },
+
+                    status_code=400
+                )
+
+            game.set_count = set_count
+
+        if 'team_ids' in payload:
+
+            team_ids_raw = payload.get('team_ids', [])
+
+            if not isinstance(team_ids_raw, list):
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'team_ids': ['Teams must be provided as a list.']
+                    },
+
+                    status_code=400
+                )
+
+            team_ids = []
+
+            for team_id in team_ids_raw:
+
+                try:
+
+                    team_ids.append(int(team_id))
+
+                except (TypeError, ValueError):
+
+                    return error_response(
+
+                        message='Validation failed.',
+
+                        errors={
+                            'team_ids': [
+                                'Each team id must be a valid integer.'
+                            ]
+                        },
+
+                        status_code=400
+                    )
+
+            team_ids = list(dict.fromkeys(team_ids))
+
+            if not team_ids:
+
+                return error_response(
+
+                    message='Validation failed.',
+
+                    errors={
+                        'team_ids': [
+                            'Select at least one team for this game.'
+                        ]
+                    },
+
+                    status_code=400
+                )
+
+            for team_id in team_ids:
+
+                team = Team.query.filter_by(
+
+                    team_id=team_id,
+
+                    event_id=game.event_id
+
+                ).first()
+
+                if not team:
+
+                    return error_response(
+
+                        message='Validation failed.',
+
+                        errors={
+                            'team_ids': [
+                                f'Team {team_id} is not part of this event.'
+                            ]
+                        },
+
+                        status_code=400
+                    )
+
+            existing_by_team = {
+                score.team_id: score
+                for score in game.game_scores
+            }
+
+            new_team_ids = set(team_ids)
+
+            for team_id, game_score in existing_by_team.items():
+
+                if team_id not in new_team_ids:
+
+                    db.session.delete(game_score)
+
+            for team_id in new_team_ids:
+
+                if team_id not in existing_by_team:
+
+                    db.session.add(
+                        GameScore(
+                            event_id=game.event_id,
+                            game_id=game.game_id,
+                            team_id=team_id,
+                            total_score=0,
+                            is_winner=False
+                        )
+                    )
 
         db.session.commit()
 
@@ -1046,6 +1239,15 @@ def delete_game(game_id):
                 message='Game not found.',
 
                 status_code=404
+            )
+
+        if game.is_finalized:
+
+            return error_response(
+
+                message='Finalized matches cannot be deleted from Games. They are kept in Reports.',
+
+                status_code=400
             )
 
         db.session.delete(game)

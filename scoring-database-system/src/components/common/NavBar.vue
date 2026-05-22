@@ -6,25 +6,10 @@ import {
   useEventContextStore
 } from '@/features/events/store/eventContextStore'
 
-
-/*
-|--------------------------------------------------------------------------
-| EVENT CONTEXT
-|--------------------------------------------------------------------------
-*/
-
 const eventContextStore =
   useEventContextStore()
 
-const {
-
-  currentEvent,
-
-  currentEventName
-
-} = storeToRefs(
-  eventContextStore
-)
+const { currentEventName } = storeToRefs(eventContextStore)
 
 </script>
 
@@ -32,29 +17,11 @@ const {
 
   <header class="navbar">
 
-    <div>
+    <h1 class="navbar-title">
 
-      <h1 class="navbar-title">
+      {{ currentEventName || 'No Event Selected' }}
 
-        {{ currentEventName }}
-
-      </h1>
-
-      <p
-        v-if="currentEvent"
-        class="event-indicator"
-      >
-        Current Event Active
-      </p>
-
-      <p
-        v-else
-        class="event-indicator"
-      >
-        No Event Selected
-      </p>
-
-    </div>
+    </h1>
 
   </header>
 
@@ -75,27 +42,18 @@ const {
 
   display: flex;
 
-  justify-content: space-between;
-
   align-items: center;
 }
 
 .navbar-title {
+
+  margin: 0;
 
   font-size: 24px;
 
   font-weight: 700;
 
   color: var(--text-main);
-}
-
-.event-indicator {
-
-  margin-top: 4px;
-
-  font-size: 13px;
-
-  color: var(--text-muted);
 }
 
 </style>

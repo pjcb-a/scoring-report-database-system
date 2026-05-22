@@ -82,11 +82,11 @@ export const useDashboardStore = defineStore(
           .total_games || 0
       })
 
-    const totalScores =
+    const totalTeams =
       computed(() => {
 
         return statistics.value
-          .total_scores || 0
+          .total_teams || 0
       })
 
     const recentGames =
@@ -264,7 +264,7 @@ export const useDashboardStore = defineStore(
 
       totalGames,
 
-      totalScores,
+      totalTeams,
 
       recentGames,
 

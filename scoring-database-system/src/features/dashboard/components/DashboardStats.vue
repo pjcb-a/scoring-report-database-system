@@ -7,7 +7,7 @@ defineProps({
 
   totalGames: Number,
 
-  totalScores: Number
+  totalTeams: Number
 })
 </script>
 
@@ -47,10 +47,10 @@ defineProps({
 
     <div class="stat-card card-base">
 
-      <p>Total Scores</p>
+      <p>Total Teams</p>
 
       <h1>
-        {{ totalScores }}
+        {{ totalTeams }}
       </h1>
 
     </div>

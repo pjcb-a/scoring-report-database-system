@@ -64,7 +64,7 @@
 
 .modal-container {
   width: 100%;
-  max-width: 550px;
+  max-width: 720px;
 
   background-color: var(--white);
 

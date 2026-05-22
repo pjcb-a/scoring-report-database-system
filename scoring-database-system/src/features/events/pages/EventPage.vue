@@ -33,6 +33,7 @@ STATE
 */
 
 const showEventForm = ref(false)
+const editingEvent = ref(null)
 
 /*
 ------------------------------------------------------------------------------
@@ -106,66 +107,37 @@ CREATE EVENT
 ------------------------------------------------------------------------------
 */
 
-const handleCreateEvent =
-  async (payload) => {
+const closeEventForm = () => {
+  showEventForm.value = false
+  editingEvent.value = null
+}
 
-    try {
+const openCreateForm = () => {
+  editingEvent.value = null
+  showEventForm.value = true
+}
 
-      /*
-      ------------------------------------------------------------------------
-      CREATE EVENT
-      ------------------------------------------------------------------------
-      */
+const handleEditEvent = (event) => {
+  editingEvent.value = event
+  showEventForm.value = true
+}
 
-      const createdEvent =
+const handleFormSuccess = async (savedEvent) => {
+  const wasEdit = !!editingEvent.value
 
-        await eventStore.createEvent(
-          payload
-        )
+  closeEventForm()
 
-      /*
-      ------------------------------------------------------------------------
-      REFRESH EVENTS
-      ------------------------------------------------------------------------
-      */
-
-      await eventStore.loadEvents()
-
-      /*
-      ------------------------------------------------------------------------
-      CLOSE MODAL
-      ------------------------------------------------------------------------
-      */
-
-      showEventForm.value = false
-
-      /*
-      ------------------------------------------------------------------------
-      AUTO SELECT EVENT
-      ------------------------------------------------------------------------
-      */
-
-      if (createdEvent) {
-
-        eventContextStore
-          .setCurrentEvent(
-            createdEvent
-          )
-      }
-
-      /*
-      ------------------------------------------------------------------------
-      REDIRECT TO EVENTS PAGE
-      ------------------------------------------------------------------------
-      */
-
-      await router.push('/events')
-
-    } catch (error) {
-
-      console.error(error)
-    }
+  if (!savedEvent) {
+    return
   }
+
+  if (wasEdit) {
+    eventContextStore.syncCurrentEvent(savedEvent)
+    return
+  }
+
+  eventContextStore.setCurrentEvent(savedEvent)
+}
 
   /*
 ------------------------------------------------------------------------------
@@ -254,7 +226,7 @@ onMounted(async () => {
 
         class="add-event-btn"
 
-        @click="showEventForm = true"
+        @click="openCreateForm"
       >
         <i class="fa-solid fa-plus"></i>
 
@@ -265,12 +237,10 @@ onMounted(async () => {
     <!-- EVENT FORM -->
 
     <EventForm
-
       v-if="showEventForm"
-
-      @close="showEventForm = false"
-
-      @save="handleCreateEvent"
+      :event="editingEvent"
+      @close="closeEventForm"
+      @success="handleFormSuccess"
     />
 
     <!-- LOADING -->
@@ -316,6 +286,7 @@ onMounted(async () => {
         "
 
         @select="selectEvent"
+        @edit="handleEditEvent"
         @delete="handleDeleteEvent"
       />
     </div>

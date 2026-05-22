@@ -32,6 +32,7 @@ const form = reactive({
 const criteriaList = ref([])
 const criteriaLoading = ref(false)
 const criteriaError = ref('')
+const formError = ref('')
 
 const buildScoreGrid = () => {
   const grid = {}
@@ -104,9 +105,10 @@ watch(
   { immediate: true }
 )
 
-const submitForm = () => {
-  if (!canSubmit.value) {
-    return
+const buildTeamsPayload = () => {
+  if (!form.winner_team_id) {
+    formError.value = 'Select the winning team before finalizing.'
+    return null
   }
 
   const teamsPayload = form.teams.map(entry => {
@@ -114,9 +116,14 @@ const submitForm = () => {
 
     for (const judge of props.judges) {
       for (const criterion of criteriaList.value) {
-        const value = Number(
+        const raw =
           entry.judge_scores[judge.judge_id][criterion.criteria_id]
-        )
+
+        if (raw === '' || raw === null || raw === undefined) {
+          return null
+        }
+
+        const value = Number(raw)
 
         if (Number.isNaN(value)) {
           return null
@@ -130,10 +137,6 @@ const submitForm = () => {
       }
     }
 
-    if (!judge_scores) {
-      return null
-    }
-
     return {
       team_id: entry.team_id,
       is_winner: Number(form.winner_team_id) === Number(entry.team_id),
@@ -142,6 +145,23 @@ const submitForm = () => {
   })
 
   if (teamsPayload.some(team => !team)) {
+    formError.value =
+      'Enter a score from every judge for every criteria for each team.'
+    return null
+  }
+
+  formError.value = ''
+  return teamsPayload
+}
+
+const submitForm = () => {
+  if (!canSubmit.value) {
+    return
+  }
+
+  const teamsPayload = buildTeamsPayload()
+
+  if (!teamsPayload) {
     return
   }
 
@@ -150,6 +170,8 @@ const submitForm = () => {
     teams: teamsPayload
   })
 }
+
+defineExpose({ setFormError: (message) => { formError.value = message } })
 </script>
 
 <template>
@@ -250,6 +272,13 @@ const submitForm = () => {
       </label>
     </div>
 
+    <p
+      v-if="formError"
+      class="form-error"
+    >
+      {{ formError }}
+    </p>
+
     <div class="form-actions">
       <button
         type="button"
@@ -259,9 +288,11 @@ const submitForm = () => {
         Cancel
       </button>
 
-      <PrimaryButton :disabled="!canSubmit">
-        Finalize Match
-      </PrimaryButton>
+      <PrimaryButton
+        type="submit"
+        label="Finalize Match"
+        :disabled="!canSubmit"
+      />
     </div>
   </form>
 </template>

@@ -1,6 +1,6 @@
 <script setup>
 
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 
 import { useRouter } from 'vue-router'
 
@@ -19,7 +19,7 @@ import {
 } from '../store/gameStore'
 
 import GameForm from '../components/GameForm.vue'
-
+import GameEditForm from '../components/GameEditForm.vue'
 import GameCard from '../components/GameCard.vue'
 
 
@@ -52,18 +52,45 @@ const {
 )
 
 const showGameForm = ref(false)
+const showEditForm = ref(false)
+const editingGame = ref(null)
 
-onMounted(async () => {
+const handleEditGame = (game) => {
+  editingGame.value = game
+  showEditForm.value = true
+}
 
+const closeEditForm = () => {
+  showEditForm.value = false
+  editingGame.value = null
+}
+
+const handleDeleteGame = async (game) => {
+  const label = game.game_name || game.sport || `Game #${game.game_id}`
+
+  if (!window.confirm(`Delete "${label}"? This removes it from Scoring or Judging as well.`)) {
+    return
+  }
+
+  try {
+    await gameStore.removeGame(game.game_id)
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const ensureGamesLoaded = async () => {
   if (!currentEvent.value) {
-
     router.push('/events')
-
     return
   }
 
   await gameStore.loadGames()
-})
+}
+
+onMounted(ensureGamesLoaded)
+
+onActivated(ensureGamesLoaded)
 
 </script>
 
@@ -75,12 +102,12 @@ onMounted(async () => {
 
       <div>
         <h1>
-          {{ currentEvent?.event_name }}
+          Games
         </h1>
 
         <p>
-          Schedule matches. Set count is captured here for set-based sports;
-          finalize scores and match status in Scoring.
+          Schedule unfinalized matches here. After finalizing in Scoring or Judging,
+          matches move to Reports and no longer appear in this list.
         </p>
       </div>
 
@@ -101,6 +128,13 @@ onMounted(async () => {
       @success="showGameForm = false"
     />
 
+    <GameEditForm
+      v-if="showEditForm && editingGame"
+      :game="editingGame"
+      @close="closeEditForm"
+      @success="closeEditForm"
+    />
+
     <div
       v-if="loading"
       class="loading-state"
@@ -119,7 +153,7 @@ onMounted(async () => {
       v-else-if="!games.length"
       class="empty-state"
     >
-      No games found. Create your first game.
+      No scheduled games. Create a match or finalize existing ones in Scoring or Judging to see them in Reports.
     </div>
 
     <div
@@ -131,6 +165,8 @@ onMounted(async () => {
         v-for="game in games"
         :key="game.game_id"
         :game="game"
+        @edit="handleEditGame"
+        @delete="handleDeleteGame"
       />
 
     </div>

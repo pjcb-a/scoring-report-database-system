@@ -6,6 +6,8 @@ import {
 
   getGamesByEvent,
 
+  getScheduledGamesByEvent,
+
   createGame,
 
   updateGame,
@@ -21,6 +23,7 @@ import {
 } from '@/features/events/store/eventContextStore'
 
 import { runAsync } from '@/utils/request'
+import { isScheduledGame } from '@/utils/gameLifecycle'
 
 
 export const useGameStore = defineStore(
@@ -50,14 +53,25 @@ export const useGameStore = defineStore(
         { loading, error },
         async () => {
 
-          const response =
-            await getGamesByEvent(
+          let response
 
+          try {
+            response = await getScheduledGamesByEvent(
               eventContextStore.currentEventId
             )
+          } catch (scheduledErr) {
+            console.warn(
+              'Scheduled games filter unavailable, falling back to full list.',
+              scheduledErr
+            )
+            response = await getGamesByEvent(
+              eventContextStore.currentEventId
+            )
+          }
 
-          games.value =
-            response.data || []
+          games.value = (response?.data || []).filter(
+            isScheduledGame
+          )
         }
       )
     }

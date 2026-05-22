@@ -8,15 +8,27 @@ import api from '@/services/api'
 */
 
 export const getGamesByEvent =
-  async (eventId) => {
+  async (eventId, options = {}) => {
+
+    const params = {}
+
+    if (options.scheduledOnly) {
+      params.scheduled_only = true
+    }
 
     const response = await api.get(
 
-      `/events/${eventId}/games`
+      `/events/${eventId}/games`,
+
+      { params }
     )
 
     return response.data
 }
+
+export const getScheduledGamesByEvent =
+  async (eventId) =>
+    getGamesByEvent(eventId, { scheduledOnly: true })
 
 
 /*

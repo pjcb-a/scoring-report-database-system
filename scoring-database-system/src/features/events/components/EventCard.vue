@@ -1,5 +1,9 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import {
+  eventStatusBadgeClass,
+  normalizeEventStatus
+} from '../utils/eventStatus'
 
 const router = useRouter()
 
@@ -17,9 +21,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-
   'select',
-
+  'edit',
   'delete'
 ])
 
@@ -53,6 +56,10 @@ const openEvent = async () => {
 DELETE EVENT
 ------------------------------------------------------------------------------
 */
+
+const editEvent = () => {
+  emit('edit', props.event)
+}
 
 const deleteEvent = () => {
 
@@ -92,13 +99,16 @@ const deleteEvent = () => {
           {{ event.event_name }}
         </h2>
 
-        <p>
-          {{ event.status }}
+        <p class="event-status-label">
+          {{ normalizeEventStatus(event.status) }}
         </p>
       </div>
 
-      <div class="event-status-badge">
-        {{ event.status }}
+      <div
+        class="event-status-badge"
+        :class="eventStatusBadgeClass(event.status)"
+      >
+        {{ normalizeEventStatus(event.status) }}
       </div>
     </div>
 
@@ -166,11 +176,18 @@ const deleteEvent = () => {
     <!-- ACTIONS -->
 
     <div class="event-actions">
+      <button
+        type="button"
+        class="edit-event-btn"
+        @click="editEvent"
+      >
+        <i class="fa-solid fa-pen" />
+        Edit
+      </button>
 
       <button
-
+        type="button"
         class="open-event-btn"
-
         @click="openEvent"
       >
         <i class="fa-solid fa-folder-open"></i>
@@ -186,9 +203,8 @@ const deleteEvent = () => {
       </button>
 
       <button
-
+        type="button"
         class="delete-event-btn"
-
         @click="deleteEvent"
       >
         <i class="fa-solid fa-trash"></i>
@@ -255,19 +271,32 @@ const deleteEvent = () => {
   color: #6b7280;
 }
 
+.event-status-label {
+  margin-top: 0.25rem;
+  color: #6b7280;
+}
+
 .event-status-badge {
-
   padding: 0.35rem 0.7rem;
-
   border-radius: 999px;
-
-  background: #dbeafe;
-
-  color: #1d4ed8;
-
   font-size: 0.8rem;
-
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge--upcoming {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge--ongoing {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge--completed {
+  background: #dcfce7;
+  color: #166534;
 }
 
 .event-details {
@@ -326,6 +355,7 @@ const deleteEvent = () => {
   gap: 0.75rem;
 }
 
+.edit-event-btn,
 .open-event-btn,
 .delete-event-btn {
 
@@ -348,8 +378,17 @@ const deleteEvent = () => {
   transition: 0.2s ease;
 }
 
-.open-event-btn {
+.edit-event-btn {
+  margin-right: auto;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
 
+.edit-event-btn:hover {
+  background: #dbeafe;
+}
+
+.open-event-btn {
   background: #2563eb;
 }
 

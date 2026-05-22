@@ -126,7 +126,7 @@ const handleDeleteTeam =
 
       <div>
         <h1>
-          {{ currentEvent?.event_name }}
+          Teams
         </h1>
 
         <p>

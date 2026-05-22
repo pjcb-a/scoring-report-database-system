@@ -21,6 +21,7 @@ const getBadgeVariant = (status) => {
 
   switch (status) {
 
+    case 'Ongoing':
     case 'Active':
       return 'success'
 
